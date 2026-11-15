@@ -13,7 +13,7 @@ public sealed class JamlSearchPlan
 public static class MotelySearchBuilder
 {
     /// <inheritdoc cref="CreateSettings"/>
-    public static JamlSearchPlan CreatePlan(MotelyRunConfig config, int? engineCutoff = null)
+    public static JamlSearchPlan CreatePlan(JamlConfig config, int? engineCutoff = null)
     {
         var settings = CreateSettings(config, engineCutoff);
         return new JamlSearchPlan
@@ -186,7 +186,7 @@ public static class MotelySearchBuilder
     /// own <c>cutoff:</c>, or no floor when it has none; <see cref="int.MinValue"/> is no floor
     /// whatever the filter says (a host whose own cutoff mode wins, as the CLI's --cutoff does).
     /// </param>
-    public static IMotelySearchSettings CreateSettings(MotelyRunConfig config, int? engineCutoff = null)
+    public static IMotelySearchSettings CreateSettings(JamlConfig config, int? engineCutoff = null)
     {
         int floor = engineCutoff ?? config.Cutoff ?? int.MinValue;
 

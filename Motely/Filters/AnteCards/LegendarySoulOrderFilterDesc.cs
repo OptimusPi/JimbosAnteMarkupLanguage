@@ -23,13 +23,13 @@ public sealed partial class LegendarySoulOrderClause: IMotelyClause, IWithScoped
     public SoulOrderEntry[]? SoulOrder
     {
         get => Entries;
-        set => Entries = value!;
+        set => Entries = RequireSoulOrder(value);
     }
 
     public SoulOrderEntry[]? SoulOrders
     {
         get => Entries;
-        set => Entries = value!;
+        set => Entries = RequireSoulOrder(value);
     }
 
     // The plain-loader rewrite dropped JamlValidator, whose CheckSoulOrder rejected a soulOrder
@@ -60,11 +60,8 @@ public sealed partial class LegendarySoulOrderClause: IMotelyClause, IWithScoped
     public int? Max { get; set; }
     public int Score { get; set; } = 1;
 
-    /// <summary>
-    /// The ordered Souls: entry <c>i</c> is the (i+1)-th Soul the run opens. A document can write
-    /// this key too, so it takes the same check as <c>soulOrder</c>.
-    /// </summary>
-    public SoulOrderEntry[] Entries { get; set => field = RequireSoulOrder(value); } = [];
+    /// <summary>The ordered Souls: entry <c>i</c> is the (i+1)-th Soul the run opens.</summary>
+    public SoulOrderEntry[] Entries { get; set; } = [];
 
     /// <summary>How far the walk runs. Antes past this are ignored.</summary>
     public int MaxAnte { get; set; } = 8;

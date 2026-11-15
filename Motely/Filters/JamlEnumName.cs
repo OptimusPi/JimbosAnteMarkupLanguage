@@ -1,4 +1,7 @@
 using System.Collections.Concurrent;
+using YamlDotNet.Core;
+using YamlDotNet.Core.Events;
+using YamlDotNet.Serialization;
 
 namespace Motely.Filters;
 
@@ -69,10 +72,6 @@ internal static class JamlEnumName
         ["K"] = nameof(MotelyStandardcardRank.King),
         ["A"] = nameof(MotelyStandardcardRank.Ace),
     };
-
-    /// <summary>The short names <paramref name="enumType"/> reads beside its own (a rank's J, Q, K, A).</summary>
-    internal static IReadOnlyCollection<string> ShortNames(Type enumType) =>
-        enumType == typeof(MotelyStandardcardRank) ? RankLetters.Keys : [];
 
     /// <summary>
     /// Normalized display spellings whose in-game name writes a digit where the C# enum writes a word
@@ -171,4 +170,34 @@ internal static class JamlEnumName
             ? "one of " + string.Join(", ", names)
             : "a name such as " + string.Join(", ", names.Take(3));
     }
+}
+
+/// <summary>
+/// Every enum-typed scalar — <c>deck</c>, <c>edition</c>, <c>erraticRank</c>, a <c>stickers</c>
+/// entry — binds through <see cref="JamlEnumName"/>. YAML's null forms fall through to the
+/// deserializer below this one, as before.
+/// </summary>
+internal sealed class JamlEnumNodeDeserializer : INodeDeserializer
+{
+    public bool Deserialize(
+        IParser reader,
+        Type expectedType,
+        Func<IParser, Type, object?> nestedObjectDeserializer,
+        out object? value,
+        ObjectDeserializer rootDeserializer
+    )
+    {
+        value = null;
+        var enumType = Nullable.GetUnderlyingType(expectedType) ?? expectedType;
+        if (!enumType.IsEnum || reader.Current is not Scalar scalar || IsNull(scalar))
+            return false;
+
+        reader.Consume<Scalar>();
+        value = JamlEnumName.Parse(enumType, scalar.Value);
+        return true;
+    }
+
+    private static bool IsNull(Scalar scalar) =>
+        scalar.Tag == "tag:yaml.org,2002:null"
+        || scalar.Style == ScalarStyle.Plain && scalar.Value is "" or "~" or "null" or "Null" or "NULL";
 }

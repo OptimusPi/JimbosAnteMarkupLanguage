@@ -23,12 +23,24 @@ public abstract class LogicClause : IMotelyClause
     [YamlDotNet.Serialization.YamlIgnore]
     public IMotelyClause[] Clauses { get; set; } = [];
 
+    /// <summary>The document key <c>clauses:</c>.</summary>
+    [YamlDotNet.Serialization.YamlMember(Alias = "clauses")]
+    public object[]? ClauseNodes
+    {
+        get => Array.ConvertAll(Clauses, static clause => (object)clause);
+        set => Clauses = ClauseTags.Bind(value).ToArray();
+    }
+
     public abstract IMotelySeedFilterDesc CreateFilterDesc();
 }
 
 [YamlDotNet.Serialization.YamlSerializable]
 public sealed partial class AndClause : LogicClause
 {
+    /// <summary>The document key <c>and:</c>, holding the child clauses.</summary>
+    [YamlDotNet.Serialization.YamlMember(Alias = "and")]
+    public object[]? AndNodes { get => null; set => ClauseNodes = value ?? ClauseNodes; }
+
     [YamlDotNet.Serialization.YamlIgnore]
     public AndPayload And
     {
@@ -51,6 +63,10 @@ public sealed partial class AndClause : LogicClause
 [YamlDotNet.Serialization.YamlSerializable]
 public sealed partial class OrClause : LogicClause
 {
+    /// <summary>The document key <c>or:</c>, holding the child clauses.</summary>
+    [YamlDotNet.Serialization.YamlMember(Alias = "or")]
+    public object[]? OrNodes { get => null; set => ClauseNodes = value ?? ClauseNodes; }
+
     [YamlDotNet.Serialization.YamlIgnore]
     public OrPayload Or
     {

@@ -85,7 +85,7 @@ internal readonly struct MotelyJamlyzerWindow
 /// Jamlyzer's filter: walks every ante's boss/voucher/tags/shop/packs and every relevant PRNG
 /// stream for one seed, answering "what does this seed actually contain?". The walk itself is
 /// <see cref="MotelyJamlyzerSeedWalk"/>; this desc is how
-/// <see cref="MotelyJamlyzer.Analyze(MotelyRunConfig, int)"/> runs it standalone,
+/// <see cref="MotelyJamlyzer.Analyze(Motely.Filters.JamlConfig, int)"/> runs it standalone,
 /// one seed per search, with a resume bag. Unrelated to the CLI's legacy <c>--analyze</c>
 /// flag (<see cref="MotelyUnitTestAnalyzer"/>).
 /// </summary>
