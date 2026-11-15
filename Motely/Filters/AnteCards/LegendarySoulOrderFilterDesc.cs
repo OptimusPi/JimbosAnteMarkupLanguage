@@ -18,18 +18,18 @@ namespace Motely.Filters;
 /// <c>Joker4</c> draws (the same sequence <c>jamlyze_seeds</c> reports).
 /// </summary>
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class LegendarySoulOrderClause: MotelyClause, IWithScopedClause
+public sealed partial class LegendarySoulOrderClause: IMotelyClause, IWithScopedClause
 {
     public SoulOrderEntry[]? SoulOrder
     {
         get => Entries;
-        set => Entries = RequireSoulOrder(value);
+        set => Entries = value!;
     }
 
     public SoulOrderEntry[]? SoulOrders
     {
         get => Entries;
-        set => Entries = RequireSoulOrder(value);
+        set => Entries = value!;
     }
 
     // The plain-loader rewrite dropped JamlValidator, whose CheckSoulOrder rejected a soulOrder
@@ -55,8 +55,16 @@ public sealed partial class LegendarySoulOrderClause: MotelyClause, IWithScopedC
         return entries;
     }
 
+    public string? Label { get; set; }
+    public int Min { get; set; } = 1;
+    public int? Max { get; set; }
+    public int Score { get; set; } = 1;
 
-    /// <summary>The ordered Souls: entry <c>i</c> is the (i+1)-th Soul the run opens.</summary>
+    /// <summary>
+    /// The ordered Souls: entry <c>i</c> is the (i+1)-th Soul the run opens. A filter may write the
+    /// list as <c>soulOrder:</c>, <c>soulOrders:</c> or <c>entries:</c>; all three land here, so all
+    /// three take the same check.
+    /// </summary>
     public SoulOrderEntry[] Entries { get; set => field = RequireSoulOrder(value); } = [];
 
     /// <summary>How far the walk runs. Antes past this are ignored.</summary>
@@ -72,7 +80,7 @@ public sealed partial class LegendarySoulOrderClause: MotelyClause, IWithScopedC
     /// </summary>
     public MotelyWith With { get; set; } = new();
 
-    public override IMotelySeedFilterDesc CreateFilterDesc() => new LegendarySoulOrderFilterDesc(this);
+    public IMotelySeedFilterDesc CreateFilterDesc() => new LegendarySoulOrderFilterDesc(this);
 }
 
 /// <summary>One Soul in a <c>soulOrder:</c> list: the legendary it must give, and the antes it may sit in.</summary>
@@ -94,13 +102,8 @@ public struct LegendarySoulOrderFilterDesc(LegendarySoulOrderClause clause)
     public LegendarySoulOrderFilter CreateFilter(ref MotelyFilterCreationContext ctx)
     {
         int maxAnte = _clause.MaxAnte > 0 ? _clause.MaxAnte : 8;
-        ctx.CachePseudoHash(MotelyPrngKeys.JokerLegendary, force: true);
         for (int ante = 0; ante <= maxAnte; ante++)
-        {
             ctx.CacheBoosterPackStream(ante, force: true);
-            ctx.CacheArcanaPackTarotStream(ante, soulOnly: true, force: true);
-            ctx.CacheSpectralPackSpectralStream(ante, soulOnly: true, force: true);
-        }
         return new LegendarySoulOrderFilter(_clause);
     }
 
@@ -113,12 +116,15 @@ public struct LegendarySoulOrderFilterDesc(LegendarySoulOrderClause clause)
         {
             Debug.Assert(_clause.Min > 0, "LegendarySoulOrderClause.Min must be > 0 — loader bug.");
 
+            // Rough cut only: the run-wide Soul walk is order-dependent (it threads one Joker4
+            // stream across antes), so it cannot be a pure SIMD lane mask. Keep every valid lane
+            // and let the scalar scoring pass confirm (IsExactFilterConfirm = false).
             uint laneMask = 0;
             for (int lane = 0; lane < MotelyGlobals.MaxVectorWidth; lane++)
                 if (ctx.IsLaneValid(lane))
                     laneMask |= 1u << lane;
 
-            return LegendarySoulEditionPrefilter.ApplySoulOrderPrefilter(ref ctx, _clause, laneMask);
+            return new VectorMask(laneMask);
         }
     }
 }
