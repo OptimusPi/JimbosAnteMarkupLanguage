@@ -362,7 +362,7 @@ public struct JokerFilterDesc(JokerClause clause)
 
 /// <summary>
 /// <c>sources:</c> block for joker / common / uncommon / rare clauses. Lives with the joker
-/// desc family (T5) — not on the dumb <see cref="MotelyRunConfig"/> bag.
+/// desc family (T5) — not on the dumb <see cref="JamlConfig"/> bag.
 /// </summary>
 [YamlDotNet.Serialization.YamlSerializable]
 public sealed partial record JokerSourceConfig

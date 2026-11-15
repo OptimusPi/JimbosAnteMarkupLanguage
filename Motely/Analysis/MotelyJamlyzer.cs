@@ -95,8 +95,8 @@ public sealed record MotelyJamlyzerPulls(
 
 /// <summary>
 /// Resumable state bag for every stream, in AND out. Returned on every result and accepted back as
-/// <c>resumeFrom</c> on the next <see cref="MotelyJamlyzer.Analyze(MotelyRunConfig, MotelyJamlyzerStreamStates, int)"/>
-/// (or, per seed, <see cref="MotelyJamlyzer.Analyze(MotelyRunConfig, IReadOnlyDictionary{string, MotelyJamlyzerStreamStates}, int)"/>)
+/// <c>resumeFrom</c> on the next <see cref="MotelyJamlyzer.Analyze(JamlConfig, MotelyJamlyzerStreamStates, int)"/>
+/// (or, per seed, <see cref="MotelyJamlyzer.Analyze(JamlConfig, IReadOnlyDictionary{string, MotelyJamlyzerStreamStates}, int)"/>)
 /// so the next window continues exactly where this one stopped — no duplicated, no skipped rolls.
 /// <para>
 /// Every stream's position is a named value here, and a resumed window sets each stream to its
@@ -235,7 +235,7 @@ public static class MotelyJamlyzer
     /// Soul pool unless Showman is held. Left out, the seed shows as a clause with no
     /// <c>with:</c> matches it.</param>
     public static IReadOnlyList<MotelyJamlyzerSeedResult> Analyze(
-        MotelyRunConfig config,
+        JamlConfig config,
         int eventRolls = 20,
         int shopSlots = 0,
         MotelyWith? with = null
@@ -248,7 +248,7 @@ public static class MotelyJamlyzer
     /// under it.
     /// </summary>
     public static IReadOnlyList<MotelyJamlyzerSeedResult> Analyze(
-        MotelyRunConfig config,
+        JamlConfig config,
         MotelyJamlyzerStreamStates resumeFrom,
         int eventRolls = 20,
         int shopSlots = 0,
@@ -286,7 +286,7 @@ public static class MotelyJamlyzer
     /// in <paramref name="config"/> collapse to one bag under the shared key.
     /// </summary>
     public static IReadOnlyList<MotelyJamlyzerSeedResult> Analyze(
-        MotelyRunConfig config,
+        JamlConfig config,
         IReadOnlyDictionary<string, MotelyJamlyzerStreamStates> resumeFrom,
         int eventRolls = 20,
         int shopSlots = 0,
@@ -314,7 +314,7 @@ public static class MotelyJamlyzer
     /// arrives at <paramref name="onAnalyzed"/> as a full <see cref="MotelyJamlyzerSeedResult"/>,
     /// walked on the same context that just filtered and scored it and carrying the search's own
     /// Score and Tally. One pass — a host on the far side of a boundary gets the find and what it
-    /// contains together, with no second call to <see cref="Analyze(MotelyRunConfig, int)"/>.
+    /// contains together, with no second call to <see cref="Analyze(JamlConfig, int)"/>.
     /// <para>
     /// <paramref name="eventRolls"/> 0 gives the per-ante summary alone — boss, voucher, tags, shop,
     /// packs — with every roll queue empty, the cheap shape for a results table. The callback fires
@@ -322,7 +322,7 @@ public static class MotelyJamlyzer
     /// </para>
     /// </summary>
     public static MotelyJamlyzerRiderDesc CreateRiderDesc(
-        MotelyRunConfig config,
+        JamlConfig config,
         Action<MotelyJamlyzerSeedResult> onAnalyzed,
         int eventRolls = 20,
         int shopSlots = 0,
@@ -330,7 +330,7 @@ public static class MotelyJamlyzer
     ) => new(ComputeAntes(config), onAnalyzed, eventRolls, shopSlots, OpensAnteZeroSouls(config), with);
 
     private static IReadOnlyList<MotelyJamlyzerSeedResult> AnalyzeCore(
-        MotelyRunConfig config,
+        JamlConfig config,
         IReadOnlyDictionary<string, MotelyJamlyzerStreamStates>? resumeStates,
         int eventRolls,
         int shopSlots,
@@ -610,7 +610,7 @@ public static class MotelyJamlyzer
     /// The antes the JAML's clauses scope to (sorted, deduplicated), or <see cref="AllAntes"/> when
     /// no clause names one.
     /// </summary>
-    public static int[] ComputeAntes(MotelyRunConfig config)
+    public static int[] ComputeAntes(JamlConfig config)
     {
         var set = new SortedSet<int>();
         foreach (var clause in config.Must.Concat(config.Should).Concat(config.MustNot))
@@ -655,7 +655,7 @@ public static class MotelyJamlyzer
     /// Yorick, where a run that never plays ante 0 gets Triboulet) and disagreed with every
     /// legendary clause on antes 1 and up, which opens exactly the Souls it names.
     /// </summary>
-    public static bool OpensAnteZeroSouls(MotelyRunConfig config) =>
+    public static bool OpensAnteZeroSouls(JamlConfig config) =>
         config.Must.Concat(config.Should).Concat(config.MustNot).Any(NamesAnteZeroSoul);
 
     private static bool NamesAnteZeroSoul(IMotelyClause clause) =>

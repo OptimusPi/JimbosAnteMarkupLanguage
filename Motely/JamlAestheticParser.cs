@@ -34,6 +34,7 @@ public static class MotelyAestheticParser
     public const string AllToken = "all";
 
     /// <summary>Strings for <c>enum</c> in the generated schema; order matches <see cref="Known"/> (no <c>all</c>).</summary>
+    public static string[] KnownJamlStringsForSchema() => [.. Known.Select(static e => e.Jaml)];
 
     /// <summary>Comma-separated list for load errors / help (includes <c>all</c>).</summary>
     public static string KnownJamlStringsDescription() =>
