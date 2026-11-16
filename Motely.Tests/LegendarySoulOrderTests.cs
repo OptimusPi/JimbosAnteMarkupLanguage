@@ -87,6 +87,23 @@ public sealed class LegendarySoulOrderTests
         Assert.Contains("at least one soul", error);
     }
 
+    // entries: is the same list under its own key, so it gets the same checks as soulOrder:.
+    [Theory]
+    [InlineData("entries: ~", "at least one soul")]
+    [InlineData("entries: []", "at least one soul")]
+    [InlineData("entries: [{ legendary: Joker }]", "not a legendary")]
+    public void Entries_AfterAValidSoulOrder_GetsTheSameChecks(string entries, string reason)
+    {
+        var ok = JamlConfig.TryLoad(
+            $"name: entries\nmust:\n  - soulOrder: [{{ legendary: Perkeo }}]\n    {entries}\n",
+            out _,
+            out var error
+        );
+
+        Assert.False(ok);
+        Assert.Contains(reason, error);
+    }
+
     // 43GS2F56 raw Joker4 = Perkeo, Yorick, Yorick, Yorick (E3 acceptance).
     [Fact]
     public void SoulOrder_RawSequence_MatchesRunWideOrder()

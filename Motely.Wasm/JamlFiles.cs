@@ -152,10 +152,12 @@ public sealed class JamlFilesModule(IFileMounter mounter) : IJamlFiles
         if (from == to)
             return;
         // Bootsharp.FileSystem moves by delete-then-write and writes over whatever is there.
-        // A change of case alone is the same file where the folder ignores case, so it may go on.
+        // A change of case alone is the same file where the folder ignores case, so it may go on,
+        // unless the folder tells case apart and already lists the new spelling as its own file.
         string target = JamlFileNames.ToName(to)!;
         bool caseOnly = string.Equals(from, to, StringComparison.OrdinalIgnoreCase);
-        if (!caseOnly && _folder!.Names.Any(n => string.Equals(n, target, StringComparison.OrdinalIgnoreCase)))
+        var taken = caseOnly ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        if (_folder!.Names.Any(n => string.Equals(n, target, taken)))
             throw new InvalidOperationException($"A filter named '{target}' is already in the folder.");
         byte[] content = await fs.ReadFile(from);
         try
@@ -189,13 +191,19 @@ public sealed class JamlFilesModule(IFileMounter mounter) : IJamlFiles
     /// <summary>A subscriber that throws must not stop the folder's later changes from arriving.</summary>
     private void Raise(JamlFileChange change)
     {
-        try
+        if (OnChange is not { } subscribers)
+            return;
+        // One at a time: a subscriber that throws must not keep the change from the ones after it.
+        foreach (Action<JamlFileChange> subscriber in subscribers.GetInvocationList())
         {
-            OnChange?.Invoke(change);
-        }
-        catch (Exception e)
-        {
-            Errors.Record(e);
+            try
+            {
+                subscriber(change);
+            }
+            catch (Exception e)
+            {
+                Errors.Record(e);
+            }
         }
     }
 

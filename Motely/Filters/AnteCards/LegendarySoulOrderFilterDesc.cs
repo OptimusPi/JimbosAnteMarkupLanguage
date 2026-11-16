@@ -18,7 +18,7 @@ namespace Motely.Filters;
 /// <c>Joker4</c> draws (the same sequence <c>jamlyze_seeds</c> reports).
 /// </summary>
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class LegendarySoulOrderClause: MotelyClause,IWithScopedClause
+public sealed partial class LegendarySoulOrderClause: MotelyClause, IWithScopedClause
 {
     public SoulOrderEntry[]? SoulOrder
     {
@@ -57,7 +57,7 @@ public sealed partial class LegendarySoulOrderClause: MotelyClause,IWithScopedCl
 
 
     /// <summary>The ordered Souls: entry <c>i</c> is the (i+1)-th Soul the run opens.</summary>
-    public SoulOrderEntry[] Entries { get; set; } = [];
+    public SoulOrderEntry[] Entries { get; set => field = RequireSoulOrder(value); } = [];
 
     /// <summary>How far the walk runs. Antes past this are ignored.</summary>
     public int MaxAnte { get; set; } = 8;
