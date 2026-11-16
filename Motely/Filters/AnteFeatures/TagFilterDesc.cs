@@ -4,17 +4,13 @@ using System.Runtime.Intrinsics;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public partial class TagClause: IMotelyClause, IAnteScopedClause, IRollScopedClause
+public partial class TagClause: MotelyClause,IAnteScopedClause, IRollScopedClause
 {
     public MotelyTag[]? Tag { get => Tags; set => Tags = value ?? []; }
 
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
 
     /// <summary>The tags that count; empty (<c>any</c>) counts every offer.</summary>
@@ -26,7 +22,7 @@ public partial class TagClause: IMotelyClause, IAnteScopedClause, IRollScopedCla
     /// </summary>
     public int[] Rolls { get; set; } = [0, 1];
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new TagFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new TagFilterDesc(this);
 }
 
 /// <summary>The small blind's tag offer only.</summary>

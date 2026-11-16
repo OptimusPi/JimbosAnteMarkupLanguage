@@ -9,17 +9,13 @@ namespace Motely.Filters;
 /// <c>startingDraw</c> / native ShuffleFinder.
 /// </summary>
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class PokerHandClause: IMotelyClause, IAnteScopedClause, IRollScopedClause
+public sealed partial class PokerHandClause: MotelyClause,IAnteScopedClause, IRollScopedClause
 {
     public MotelyPokerHand[]? PokerHand { get => PokerHands; set => PokerHands = value ?? []; }
 
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
     public MotelyPokerHand[] PokerHands { get; set; } = [];
 
@@ -33,7 +29,7 @@ public sealed partial class PokerHandClause: IMotelyClause, IAnteScopedClause, I
     /// </summary>
     public int[] Rolls { get; set; } = [0];
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new PokerHandFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new PokerHandFilterDesc(this);
 }
 
 public struct PokerHandFilterDesc(PokerHandClause clause)

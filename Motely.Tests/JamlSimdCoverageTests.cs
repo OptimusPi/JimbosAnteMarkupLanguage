@@ -11,7 +11,7 @@ public class JamlSimdCoverageTests
     private static readonly string[] Seeds = ["MOTELY77"];
 
     /// <summary>SIMD Must path: batch must run (no MatchingSeeds pin).</summary>
-    private static void RunMust(IMotelyClause clause)
+    private static void RunMust(MotelyClause clause)
     {
         var config = new JamlConfig
         {
@@ -33,7 +33,7 @@ public class JamlSimdCoverageTests
     }
 
     /// <summary>Scalar Should path: scoring callback must fire for this seed list.</summary>
-    private static void RunShould(IMotelyClause clause)
+    private static void RunShould(MotelyClause clause)
     {
         clause.Score = 1;
         var config = new JamlConfig
@@ -58,7 +58,7 @@ public class JamlSimdCoverageTests
         Assert.True(score >= 0, "scoring callback must fire (seed pin lives in golden tests)");
     }
 
-    private static void ExerciseBoth(IMotelyClause must, IMotelyClause should)
+    private static void ExerciseBoth(MotelyClause must, MotelyClause should)
     {
         RunMust(must);
         RunShould(should);
@@ -240,7 +240,7 @@ public class JamlSimdCoverageTests
     [Fact]
     public void Events_FilterAndScore()
     {
-        IMotelyClause[] Make() =>
+        MotelyClause[] Make() =>
             [
                 new LuckyMoneyClause { Rolls = [0, 1] },
                 new LuckyMultClause { Rolls = [0, 1] },

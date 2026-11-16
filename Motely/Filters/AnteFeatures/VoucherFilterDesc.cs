@@ -6,17 +6,13 @@ using static Motely.MotelyVectorUtils;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class VoucherClause: IMotelyClause, IAnteScopedClause, IRollScopedClause
+public sealed partial class VoucherClause: MotelyClause,IAnteScopedClause, IRollScopedClause
 {
     public MotelyVoucher[]? Voucher { get => Vouchers; set => Vouchers = value ?? []; }
 
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
 
     /// <summary>The vouchers that count; empty (<c>any</c>) counts every draw.</summary>
@@ -28,7 +24,7 @@ public sealed partial class VoucherClause: IMotelyClause, IAnteScopedClause, IRo
     /// </summary>
     public int[] Rolls { get; set; } = [0];
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new VoucherFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new VoucherFilterDesc(this);
 }
 
 public struct VoucherFilterDesc(VoucherClause clause)

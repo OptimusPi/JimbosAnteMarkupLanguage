@@ -26,37 +26,9 @@ public sealed partial record JamlConfig
     /// </summary>
     public int? Cutoff { get; set; }
 
-    // The document lists are List<object>: IMotelyClause is not a type the static generator can
-    // register. ClauseKeyDeserializer builds each clause from its key (joker:, tag:, or:, …).
-    [YamlDotNet.Serialization.YamlIgnore]
-    public List<IMotelyClause> Must { get; set; } = [];
-
-    [YamlDotNet.Serialization.YamlIgnore]
-    public List<IMotelyClause> Should { get; set; } = [];
-
-    [YamlDotNet.Serialization.YamlIgnore]
-    public List<IMotelyClause> MustNot { get; set; } = [];
-
-    [YamlDotNet.Serialization.YamlMember(Alias = "must")]
-    internal List<object>? MustTagged
-    {
-        get => Must.ConvertAll(static clause => (object)clause);
-        set => Must = ClauseTags.Bind(value);
-    }
-
-    [YamlDotNet.Serialization.YamlMember(Alias = "should")]
-    internal List<object>? ShouldTagged
-    {
-        get => Should.ConvertAll(static clause => (object)clause);
-        set => Should = ClauseTags.Bind(value);
-    }
-
-    [YamlDotNet.Serialization.YamlMember(Alias = "mustNot")]
-    internal List<object>? MustNotTagged
-    {
-        get => MustNot.ConvertAll(static clause => (object)clause);
-        set => MustNot = ClauseTags.Bind(value);
-    }
+    public List<MotelyClause> Must { get; set => field = value ?? []; } = [];
+    public List<MotelyClause> Should { get; set => field = value ?? []; } = [];
+    public List<MotelyClause> MustNot { get; set => field = value ?? []; } = [];
 
     public bool HasAnyClauses() => Must.Count != 0 || Should.Count != 0 || MustNot.Count != 0;
 

@@ -6,15 +6,9 @@ namespace Motely.Filters;
 // roll struct; EventFilterDesc walks the stream for all of them.
 
 /// <summary>A clause over one event stream: <c>rolls</c> picks the pulls that count.</summary>
-public abstract class EventClause : IRollScopedClause
+public abstract class EventClause : MotelyClause, IRollScopedClause
 {
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Rolls { get; set; } = [];
-
-    public abstract IMotelySeedFilterDesc CreateFilterDesc();
 }
 
 /// <summary>An event whose odds Oops! All 6s doubles: <c>with: { luck: X2 }</c>.</summary>

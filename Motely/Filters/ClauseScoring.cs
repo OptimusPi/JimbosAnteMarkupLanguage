@@ -11,7 +11,7 @@ public static class ClauseScoring
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void PrepareRunState(
         ref MotelySingleSearchContext ctx,
-        IMotelyClause[] clauses,
+        MotelyClause[] clauses,
         MotelyRunState runState
     )
     {
@@ -45,7 +45,7 @@ public static class ClauseScoring
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool ClauseMeetsMinForFilter(
         ref MotelySingleSearchContext ctx,
-        IMotelyClause clause
+        MotelyClause clause
     )
     {
         Debug.Assert(clause.Min > 0, "Clause.Min must be > 0 — loader bug.");
@@ -66,7 +66,7 @@ public static class ClauseScoring
     /// satisfy (<c>min: 0</c>, or <c>min: 0, max: 0</c> for "none of these") would drop the very
     /// seeds it accepts. Such a clause, or an and/or holding one, is confirmed by scoring alone.
     /// </summary>
-    internal static bool CanChainInSimd(IMotelyClause clause)
+    internal static bool CanChainInSimd(MotelyClause clause)
     {
         if (clause is LogicClause logic)
         {
@@ -85,7 +85,7 @@ public static class ClauseScoring
     /// vector prefilter). Scoring may skip must re-eval when every must clause is exact. A clause
     /// the chain can't carry (<see cref="CanChainInSimd"/>) is never exact: nothing confirmed it.
     /// </summary>
-    internal static bool IsExactFilterConfirm(IMotelyClause clause) =>
+    internal static bool IsExactFilterConfirm(MotelyClause clause) =>
         CanChainInSimd(clause) && clause switch
         {
             BossClause => true,
@@ -128,7 +128,7 @@ public static class ClauseScoring
             _ => false,
         };
 
-    private static bool AllExactFilterConfirm(IMotelyClause[] clauses)
+    private static bool AllExactFilterConfirm(MotelyClause[] clauses)
     {
         if (clauses.Length == 0)
             return false;
@@ -158,7 +158,7 @@ public static class ClauseScoring
     /// True when every must clause already had an exact SIMD confirm — scoring re-eval of must
     /// would only re-pay the same CountRawOccurrences law.
     /// </summary>
-    internal static bool CanSkipMustReeval(IMotelyClause[] mustClauses)
+    internal static bool CanSkipMustReeval(MotelyClause[] mustClauses)
     {
         if (mustClauses.Length == 0)
             return true;
@@ -205,7 +205,7 @@ public static class ClauseScoring
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int CountOccurrences(
         ref MotelySingleSearchContext ctx,
-        IMotelyClause clause,
+        MotelyClause clause,
         MotelyRunState runState
     )
     {
@@ -216,7 +216,7 @@ public static class ClauseScoring
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CountOccurrencesUncapped(
         ref MotelySingleSearchContext ctx,
-        IMotelyClause clause,
+        MotelyClause clause,
         MotelyRunState runState
     )
     {
@@ -263,17 +263,17 @@ public static class ClauseScoring
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int CapScoreCountForTesting(int count, IMotelyClause clause) =>
+    internal static int CapScoreCountForTesting(int count, MotelyClause clause) =>
         CapScoreCount(count, clause);
 
     /// <summary>
-    /// Match bounds: <see cref="IMotelyClause.Min"/> is the floor and <see cref="IMotelyClause.Max"/>,
+    /// Match bounds: <see cref="MotelyClause.Min"/> is the floor and <see cref="MotelyClause.Max"/>,
     /// when set, the ceiling; null is the only "no ceiling". Score tallies use <see cref="CapScoreCount"/> instead, so a
     /// should column's contribution is capped rather than gated. SIMD prefilters may stay
     /// over-permissive on max; scoring and the exact confirm paths enforce it.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool MeetsOccurrenceBounds(int raw, IMotelyClause clause)
+    internal static bool MeetsOccurrenceBounds(int raw, MotelyClause clause)
     {
         if (raw < clause.Min)
             return false;
@@ -289,17 +289,17 @@ public static class ClauseScoring
     /// for it any positive return is a match: its <c>min</c> is never re-applied as a floor.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool Matches(int raw, IMotelyClause clause) =>
+    internal static bool Matches(int raw, MotelyClause clause) =>
         clause is LogicClause ? raw > 0 : MeetsOccurrenceBounds(raw, clause);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int CapScoreCount(int count, IMotelyClause clause)
+    internal static int CapScoreCount(int count, MotelyClause clause)
     {
         var max = clause.Max;
         return max is { } m && count > m ? m : count;
     }
 
-    private static int UnhandledClauseForScoring(IMotelyClause clause)
+    private static int UnhandledClauseForScoring(MotelyClause clause)
     {
         Debug.Assert(
             false,
@@ -377,11 +377,11 @@ public static class ClauseScoring
 
     /// <summary>An unscored arm weighs 1, the same default the loader gives a bare should clause.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int OrArmWeight(IMotelyClause arm) => arm.Score != 0 ? arm.Score : 1;
+    private static int OrArmWeight(MotelyClause arm) => arm.Score != 0 ? arm.Score : 1;
 
     public static int CountRawOccurrences(
         ref MotelySingleSearchContext ctx,
-        IMotelyClause clause,
+        MotelyClause clause,
         MotelyRunState runState
     )
     {
@@ -2481,7 +2481,7 @@ public static class ClauseScoring
         return 0;
     }
 
-    private static int GetMaxAnte(IMotelyClause clause)
+    private static int GetMaxAnte(MotelyClause clause)
     {
         return clause switch
         {
@@ -2509,7 +2509,7 @@ public static class ClauseScoring
         };
     }
 
-    private static int MaxNestedAnte(IMotelyClause[] clauses)
+    private static int MaxNestedAnte(MotelyClause[] clauses)
     {
         int max = 0;
         for (int i = 0; i < clauses.Length; i++)
@@ -2525,7 +2525,7 @@ public static class ClauseScoring
     // PrepareRunState sizes CachedBosses from this, so it has to descend into and:/or: the same
     // way GetMaxAnte does — a boss clause only ever reachable through a conjunction still gets
     // its ante scored, and CountBossOccurrences indexes CachedBosses by that ante directly.
-    private static int GetMaxBossAnte(IMotelyClause clause) =>
+    private static int GetMaxBossAnte(MotelyClause clause) =>
         clause switch
         {
             BossClause c => ArrayMax(c.Antes),
@@ -2534,7 +2534,7 @@ public static class ClauseScoring
             _ => 0,
         };
 
-    private static int MaxNestedBossAnte(IMotelyClause[] clauses)
+    private static int MaxNestedBossAnte(MotelyClause[] clauses)
     {
         int max = 0;
         for (int i = 0; i < clauses.Length; i++)

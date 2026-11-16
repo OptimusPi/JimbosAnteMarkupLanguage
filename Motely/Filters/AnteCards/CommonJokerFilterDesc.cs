@@ -6,7 +6,7 @@ using static Motely.MotelyVectorUtils;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class CommonJokerClause : IMotelyClause, IAnteScopedClause, IWithScopedClause
+public sealed partial class CommonJokerClause : MotelyClause,IAnteScopedClause, IWithScopedClause
 {
     public MotelyJokerCommon[]? CommonJoker { get => Jokers; set => Jokers = value ?? []; }
     public MotelyJokerCommon[]? CommonJokers { get => Jokers; set => Jokers = value ?? []; }
@@ -14,10 +14,6 @@ public sealed partial class CommonJokerClause : IMotelyClause, IAnteScopedClause
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
     public MotelyJokerCommon[] Jokers { get; set; } = [];
     public MotelyItemEdition? Edition { get; set; }
@@ -25,7 +21,7 @@ public sealed partial class CommonJokerClause : IMotelyClause, IAnteScopedClause
     public JokerSourceConfig? Sources { get; set; }
     public MotelyWith With { get; set; } = new();
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new CommonJokerFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new CommonJokerFilterDesc(this);
 }
 
 public struct CommonJokerFilterDesc(CommonJokerClause clause)

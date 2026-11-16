@@ -15,7 +15,7 @@ namespace Motely.Filters;
 /// comes from the ante's own <c>edisou{ante}</c> stream.
 /// </summary>
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class LegendaryJokerClause: IMotelyClause, IAnteScopedClause, IWithScopedClause
+public sealed partial class LegendaryJokerClause: MotelyClause,IAnteScopedClause, IWithScopedClause
 {
     public MotelyJoker[]? LegendaryJoker { get => Jokers; set => Jokers = value ?? []; }
     public MotelyJoker[]? LegendaryJokers { get => Jokers; set => Jokers = value ?? []; }
@@ -26,10 +26,6 @@ public sealed partial class LegendaryJokerClause: IMotelyClause, IAnteScopedClau
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
     public MotelyJoker[] Jokers { get; set; } = [];
     public MotelyItemEdition? Edition { get; set; }
@@ -61,7 +57,7 @@ public sealed partial class LegendaryJokerClause: IMotelyClause, IAnteScopedClau
     /// </summary>
     public int SoulEditionRolls { get; set; }
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new LegendaryJokerFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new LegendaryJokerFilterDesc(this);
 }
 
 public struct LegendaryJokerFilterDesc(LegendaryJokerClause clause)

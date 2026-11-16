@@ -10,7 +10,7 @@ namespace Motely.Filters;
 /// Value enum is <see cref="MotelyBoosterPack"/> (already in Motely.Enums; no new enum).
 /// </summary>
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class BoosterPackClause: IMotelyClause, IAnteScopedClause, IRollScopedClause
+public sealed partial class BoosterPackClause: MotelyClause,IAnteScopedClause, IRollScopedClause
 {
     public MotelyBoosterPack[]? BoosterPack { get => Packs; set => Packs = value ?? []; }
     public MotelyBoosterPack[]? BoosterPacks { get => Packs; set => Packs = value ?? []; }
@@ -18,10 +18,6 @@ public sealed partial class BoosterPackClause: IMotelyClause, IAnteScopedClause,
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
 
     /// <summary>
@@ -35,7 +31,7 @@ public sealed partial class BoosterPackClause: IMotelyClause, IAnteScopedClause,
     /// </summary>
     public int[] Rolls { get; set; } = [0, 1];
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new BoosterPackFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new BoosterPackFilterDesc(this);
 }
 
 public struct BoosterPackFilterDesc(BoosterPackClause clause)

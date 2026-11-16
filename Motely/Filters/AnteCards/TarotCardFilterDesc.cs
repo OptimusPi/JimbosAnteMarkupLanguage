@@ -5,7 +5,7 @@ using System.Runtime.Intrinsics;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class TarotCardClause: IMotelyClause, IAnteScopedClause, IWithScopedClause
+public sealed partial class TarotCardClause: MotelyClause,IAnteScopedClause, IWithScopedClause
 {
     public MotelyTarotCard[]? TarotCard { get => Tarots; set => Tarots = value ?? []; }
     public MotelyTarotCard[]? TarotCards { get => Tarots; set => Tarots = value ?? []; }
@@ -13,10 +13,6 @@ public sealed partial class TarotCardClause: IMotelyClause, IAnteScopedClause, I
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
     public MotelyTarotCard[] Tarots { get; set; } = [];
 
@@ -24,7 +20,7 @@ public sealed partial class TarotCardClause: IMotelyClause, IAnteScopedClause, I
     public TarotCardSourceConfig? Sources { get; set; }
     public MotelyWith With { get; set; } = new();
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new TarotCardFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new TarotCardFilterDesc(this);
 }
 
 public struct TarotCardFilterDesc(TarotCardClause clause)

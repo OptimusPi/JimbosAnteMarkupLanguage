@@ -15,7 +15,7 @@ internal static class TwinFilters
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public static string Fields(IMotelyClause clause) => clause.GetType().Name + JsonSerializer.Serialize(clause, clause.GetType(), FieldOptions);
+    public static string Fields(MotelyClause clause) => clause.GetType().Name + JsonSerializer.Serialize(clause, clause.GetType(), FieldOptions);
 
     /// <summary>Every clause of the config, in order, as its type and fields.</summary>
     public static string[] AllFields(JamlConfig config) =>

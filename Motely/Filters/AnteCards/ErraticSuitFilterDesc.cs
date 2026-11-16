@@ -6,7 +6,7 @@ using System.Runtime.Intrinsics;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class ErraticSuitClause: IMotelyClause, IAnteScopedClause
+public sealed partial class ErraticSuitClause: MotelyClause,IAnteScopedClause
 {
     public MotelyStandardcardSuit? ErraticSuit
     {
@@ -23,10 +23,6 @@ public sealed partial class ErraticSuitClause: IMotelyClause, IAnteScopedClause
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
     public MotelyStandardcardSuit Suit { get; set; }
 
@@ -39,7 +35,7 @@ public sealed partial class ErraticSuitClause: IMotelyClause, IAnteScopedClause
             _ => 13,
         };
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new ErraticSuitFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new ErraticSuitFilterDesc(this);
 }
 
 public struct ErraticSuitFilterDesc(ErraticSuitClause clause)

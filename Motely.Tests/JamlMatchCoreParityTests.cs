@@ -8,7 +8,7 @@ public sealed class JamlMatchCoreParityTests
 {
     private static readonly string[] Seeds = ["ALEEB", "MOTELY77", "AAAAAAAA", "11111111"];
 
-    private static HashSet<string> RunMustHits(IMotelyClause clause)
+    private static HashSet<string> RunMustHits(MotelyClause clause)
     {
         var config = new JamlConfig
         {
@@ -31,7 +31,7 @@ public sealed class JamlMatchCoreParityTests
         return hits;
     }
 
-    private static HashSet<string> RunShouldHits(IMotelyClause clause)
+    private static HashSet<string> RunShouldHits(MotelyClause clause)
     {
         clause.Score = 1;
         var config = new JamlConfig

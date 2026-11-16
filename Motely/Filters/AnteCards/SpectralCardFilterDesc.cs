@@ -5,7 +5,7 @@ using System.Runtime.Intrinsics;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class SpectralCardClause: IMotelyClause, IAnteScopedClause, IWithScopedClause
+public sealed partial class SpectralCardClause: MotelyClause,IAnteScopedClause, IWithScopedClause
 {
     public MotelySpectralCard[]? SpectralCard { get => Spectrals; set => Spectrals = value ?? []; }
     public MotelySpectralCard[]? SpectralCards { get => Spectrals; set => Spectrals = value ?? []; }
@@ -13,10 +13,6 @@ public sealed partial class SpectralCardClause: IMotelyClause, IAnteScopedClause
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
     public MotelySpectralCard[] Spectrals { get; set; } = [];
 
@@ -24,7 +20,7 @@ public sealed partial class SpectralCardClause: IMotelyClause, IAnteScopedClause
     public SpectralCardSourceConfig? Sources { get; set; }
     public MotelyWith With { get; set; } = new();
 
-    public IMotelySeedFilterDesc CreateFilterDesc() =>
+    public override IMotelySeedFilterDesc CreateFilterDesc() =>
         SpecialSpectralCardFilterDesc.Handles(this)
             ? new SpecialSpectralCardFilterDesc(this)
             : new SpectralCardFilterDesc(this);

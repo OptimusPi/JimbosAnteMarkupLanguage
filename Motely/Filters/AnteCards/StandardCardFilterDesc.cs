@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class StandardCardClause: IMotelyClause, IAnteScopedClause, IWithScopedClause
+public sealed partial class StandardCardClause: MotelyClause,IAnteScopedClause, IWithScopedClause
 {
     public JamlStandardCardSlot? StandardCard
     {
@@ -38,10 +38,6 @@ public sealed partial class StandardCardClause: IMotelyClause, IAnteScopedClause
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
 
     /// <summary>A whole card (<c>standardCard: AceOfSpades</c>): its rank and suit at once.</summary>
@@ -68,7 +64,7 @@ public sealed partial class StandardCardClause: IMotelyClause, IAnteScopedClause
     public StandardCardSourceConfig? Sources { get; set; }
     public MotelyWith With { get; set; } = new();
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new StandardCardFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new StandardCardFilterDesc(this);
 }
 
 public struct StandardCardFilterDesc(StandardCardClause clause)

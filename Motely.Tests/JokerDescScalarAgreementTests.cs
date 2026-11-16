@@ -29,14 +29,14 @@ public sealed class JokerDescScalarAgreementTests
     ];
 
     /// <summary>Scalar law for the same clause, one seed at a time.</summary>
-    private sealed class ScalarProbeDesc(IMotelyClause clause)
+    private sealed class ScalarProbeDesc(MotelyClause clause)
         : IMotelySeedFilterDesc<ScalarProbeDesc.ScalarProbeFilter>
     {
         public ScalarProbeFilter CreateFilter(ref MotelyFilterCreationContext ctx) => new(clause);
 
-        public readonly struct ScalarProbeFilter(IMotelyClause clause) : IMotelySeedFilter
+        public readonly struct ScalarProbeFilter(MotelyClause clause) : IMotelySeedFilter
         {
-            private readonly IMotelyClause _clause = clause;
+            private readonly MotelyClause _clause = clause;
 
             public VectorMask Filter(ref MotelyVectorSearchContext ctx)
             {
@@ -65,7 +65,7 @@ public sealed class JokerDescScalarAgreementTests
         return [.. matched.OrderBy(s => s, StringComparer.Ordinal)];
     }
 
-    private static string[] Scalar(IMotelyClause clause, MotelyStake stake) =>
+    private static string[] Scalar(MotelyClause clause, MotelyStake stake) =>
         Run(new ScalarProbeDesc(clause), stake);
 
     private static string[] Simd(JokerClause c, MotelyStake stake) =>

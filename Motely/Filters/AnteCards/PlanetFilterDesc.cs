@@ -5,7 +5,7 @@ using System.Runtime.Intrinsics;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class PlanetCardClause: IMotelyClause, IAnteScopedClause, IWithScopedClause
+public sealed partial class PlanetCardClause: MotelyClause,IAnteScopedClause, IWithScopedClause
 {
     public MotelyPlanetCard[]? PlanetCard { get => Planets; set => Planets = value ?? []; }
     public MotelyPlanetCard[]? PlanetCards { get => Planets; set => Planets = value ?? []; }
@@ -13,10 +13,6 @@ public sealed partial class PlanetCardClause: IMotelyClause, IAnteScopedClause, 
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
     public MotelyPlanetCard[] Planets { get; set; } = [];
 
@@ -25,7 +21,7 @@ public sealed partial class PlanetCardClause: IMotelyClause, IAnteScopedClause, 
     public PlanetSourceConfig? Sources { get; set; }
     public MotelyWith With { get; set; } = new();
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new PlanetCardFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new PlanetCardFilterDesc(this);
 }
 
 public struct PlanetCardFilterDesc(PlanetCardClause clause)

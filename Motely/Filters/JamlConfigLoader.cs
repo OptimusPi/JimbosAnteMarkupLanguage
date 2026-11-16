@@ -67,7 +67,7 @@ public static partial class JamlConfigLoader
         }
     }
 
-    private static void CheckBounds(IEnumerable<IMotelyClause> clauses)
+    private static void CheckBounds(IEnumerable<MotelyClause> clauses)
     {
         foreach (var clause in clauses)
         {
@@ -115,7 +115,7 @@ public static partial class JamlConfigLoader
     private static bool IsLegendary(MotelyJoker joker) =>
         (MotelyJokerRarity)((int)joker & MotelyGlobals.JokerRarityMask) == MotelyJokerRarity.Legendary;
 
-    private static InvalidOperationException OutOfRange(IMotelyClause clause, string rule)
+    private static InvalidOperationException OutOfRange(MotelyClause clause, string rule)
     {
         var key = JamlClauseBinding.ClauseTypeByKey.FirstOrDefault(pair => pair.Value == clause.GetType()).Key
             ?? clause.GetType().Name;

@@ -13,19 +13,19 @@ namespace Motely.Filters;
 public struct JamlShouldScoreDesc
     : IMotelySeedScoreDesc<JamlShouldScoreDesc.JamlShouldScoreProvider>
 {
-    private readonly IMotelyClause[] _mustClauses;
-    private readonly IMotelyClause[] _shouldClauses;
-    private readonly IMotelyClause[] _mustNotClauses;
+    private readonly MotelyClause[] _mustClauses;
+    private readonly MotelyClause[] _shouldClauses;
+    private readonly MotelyClause[] _mustNotClauses;
     private readonly Action<string>? _seedMatchCallback;
     private readonly int _minimumTotalScore;
     private readonly bool _skipMustReeval;
 
     public JamlShouldScoreDesc(
-        IMotelyClause[] mustClauses,
-        IMotelyClause[] shouldClauses,
+        MotelyClause[] mustClauses,
+        MotelyClause[] shouldClauses,
         Action<string>? seedMatchCallback = null,
         int minimumTotalScore = int.MinValue,
-        IMotelyClause[]? mustNotClauses = null
+        MotelyClause[]? mustNotClauses = null
     )
     {
         _mustClauses = mustClauses;
@@ -48,21 +48,21 @@ public struct JamlShouldScoreDesc
 
     public struct JamlShouldScoreProvider : IMotelySeedScoreProvider
     {
-        private readonly IMotelyClause[] _mustClauses;
-        private readonly IMotelyClause[] _shouldClauses;
-        private readonly IMotelyClause[] _mustNotClauses;
-        private readonly IMotelyClause[] _prepareClauses;
+        private readonly MotelyClause[] _mustClauses;
+        private readonly MotelyClause[] _shouldClauses;
+        private readonly MotelyClause[] _mustNotClauses;
+        private readonly MotelyClause[] _prepareClauses;
         private readonly Action<string>? _seedMatchCallback;
         private readonly int _minimumTotalScore;
         private readonly bool _skipMustReeval;
 
         public JamlShouldScoreProvider(
-            IMotelyClause[] mustClauses,
-            IMotelyClause[] shouldClauses,
+            MotelyClause[] mustClauses,
+            MotelyClause[] shouldClauses,
             Action<string>? seedMatchCallback,
             int minimumTotalScore = int.MinValue,
             bool skipMustReeval = false,
-            IMotelyClause[]? mustNotClauses = null
+            MotelyClause[]? mustNotClauses = null
         )
         {
             mustNotClauses ??= [];
@@ -210,10 +210,10 @@ public struct JamlShouldScoreDesc
             );
         }
 
-        private static IMotelyClause[] CombineForPrepareRunState(
-            IMotelyClause[] mustClauses,
-            IMotelyClause[] shouldClauses,
-            IMotelyClause[] mustNotClauses
+        private static MotelyClause[] CombineForPrepareRunState(
+            MotelyClause[] mustClauses,
+            MotelyClause[] shouldClauses,
+            MotelyClause[] mustNotClauses
         )
         {
             if (mustClauses.Length + mustNotClauses.Length == 0)
@@ -221,7 +221,7 @@ public struct JamlShouldScoreDesc
             if (shouldClauses.Length + mustNotClauses.Length == 0)
                 return mustClauses;
 
-            var combined = new IMotelyClause[
+            var combined = new MotelyClause[
                 mustClauses.Length + shouldClauses.Length + mustNotClauses.Length
             ];
             mustClauses.CopyTo(combined, 0);

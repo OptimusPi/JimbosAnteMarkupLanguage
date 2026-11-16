@@ -8,7 +8,7 @@ public sealed class JamlMustPathCoverageTests
 {
     private static readonly string[] Seeds = ["ALEEB", "MOTELY77", "UNITTEST"];
 
-    private static void RunMust(IMotelyClause clause, MotelyDeck deck = MotelyDeck.Red)
+    private static void RunMust(MotelyClause clause, MotelyDeck deck = MotelyDeck.Red)
     {
         var config = new JamlConfig
         {

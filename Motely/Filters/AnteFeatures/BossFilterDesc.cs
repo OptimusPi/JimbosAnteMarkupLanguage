@@ -4,17 +4,13 @@ using System.Runtime.CompilerServices;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class BossClause: IMotelyClause, IAnteScopedClause
+public sealed partial class BossClause: MotelyClause,IAnteScopedClause
 {
     public MotelyBossBlind[]? Boss { get => Bosses; set => Bosses = value ?? []; }
 
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
 
     /// <summary>The bosses that count; empty (<c>any</c>) counts every ante's boss.</summary>
@@ -22,7 +18,7 @@ public sealed partial class BossClause: IMotelyClause, IAnteScopedClause
     // No Rolls: boss re-rolls need the full-run rewind that MotelySearchContext.Boss.cs does
     // not simulate yet. Antes select the where.
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new BossFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new BossFilterDesc(this);
 }
 
 public readonly struct BossFilterDesc(BossClause clause)

@@ -8,17 +8,13 @@ using static Motely.MotelyVectorUtils;
 namespace Motely.Filters;
 
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class JokerClause: IMotelyClause, IAnteScopedClause, IWithScopedClause
+public sealed partial class JokerClause: MotelyClause, IAnteScopedClause, IWithScopedClause
 {
     public MotelyJoker[]? Joker { get => Jokers; set => Jokers = value ?? []; }
 
     /// <summary><c>ante: 2</c> or <c>ante: [1, 2]</c> is <c>antes:</c>.</summary>
     public int[]? Ante { get => null; set => Antes = value ?? Antes; }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public int[] Antes { get; set; } = [1, 2, 3, 4, 5, 6, 7, 8];
     public MotelyJoker[] Jokers { get; set; } = [];
     public MotelyItemEdition? Edition { get; set; }
@@ -30,7 +26,7 @@ public sealed partial class JokerClause: IMotelyClause, IAnteScopedClause, IWith
     /// <see cref="LegendaryJokerFilterDesc.DefaultSources"/> (same convention as <see cref="Sources"/>).</summary>
     public LegendaryJokerSourceConfig? LegendarySources { get; set; }
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new JokerFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new JokerFilterDesc(this);
 }
 
 public struct JokerFilterDesc(JokerClause clause)

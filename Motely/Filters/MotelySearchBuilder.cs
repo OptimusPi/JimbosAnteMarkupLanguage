@@ -29,10 +29,10 @@ public static class MotelySearchBuilder
     /// the clause in words ("Blueprint in antes 1 or 2"). "score{index}" is left for an
     /// <c>and</c>/<c>or</c> with no clauses, and for a clause type <see cref="ClauseName"/> has no arm for.
     /// </summary>
-    public static string DefaultTallyLabel(IMotelyClause clause, int index) =>
+    public static string DefaultTallyLabel(MotelyClause clause, int index) =>
         clause.Label ?? ClauseName(clause) ?? $"score{index}";
 
-    private static string? ClauseName(IMotelyClause clause) =>
+    private static string? ClauseName(MotelyClause clause) =>
         clause switch
         {
             JokerClause c => Joker(c.Stickers, c.Edition, Names(c.Jokers) ?? "Joker", c.Antes),

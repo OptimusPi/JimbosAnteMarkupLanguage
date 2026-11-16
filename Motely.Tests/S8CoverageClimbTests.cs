@@ -92,7 +92,7 @@ public sealed class S8CoverageClimbTests
     // ── Filter path execution via list (coverage without sequential) ──
 
     private static void RunClause(
-        IMotelyClause clause,
+        MotelyClause clause,
         string[] seeds,
         MotelyDeck deck = MotelyDeck.Red
     )

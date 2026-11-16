@@ -46,7 +46,7 @@ public sealed class JamlSimdPackSupportTests
         );
     }
 
-    private static HashSet<string> RunMust(IMotelyClause clause)
+    private static HashSet<string> RunMust(MotelyClause clause)
     {
         var config = new JamlConfig
         {
@@ -67,7 +67,7 @@ public sealed class JamlSimdPackSupportTests
         return hits;
     }
 
-    private static HashSet<string> RunShould(IMotelyClause clause)
+    private static HashSet<string> RunShould(MotelyClause clause)
     {
         clause.Score = 1;
         var config = new JamlConfig

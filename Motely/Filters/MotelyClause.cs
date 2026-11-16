@@ -1,23 +1,24 @@
 namespace Motely.Filters;
 
 /// <summary>A filter's parameters: what a seed must contain, and how much a hit is worth.</summary>
-public interface IMotelyClause
+[YamlDotNet.Serialization.YamlSerializable]
+public partial class MotelyClause
 {
-    string? Label { get; set; }
-    int Min { get; set; }
-    int? Max { get; set; }
-    int Score { get; set; }
+    public string? Label { get; set; }
+    public int Min { get; set; } = 1;
+    public int? Max { get; set; }
+    public int Score { get; set; } = 1;
 
-    /// <summary>The SIMD filter this clause installs. Each clause type names its own, so there is
-    /// no list of clause types to keep in step: a clause without one does not compile.</summary>
-    IMotelySeedFilterDesc CreateFilterDesc();
+    /// <summary>The SIMD filter this clause installs. Each clause class names its own.</summary>
+    public virtual IMotelySeedFilterDesc CreateFilterDesc() =>
+        throw new InvalidOperationException(ClauseKeyDeserializer.NeedsKey);
 }
 
 /// <summary>
 /// Capability for clauses scoped to specific antes (cards/features). Event clauses do NOT
 /// implement this — they are roll-scoped, not ante-scoped.
 /// </summary>
-public interface IAnteScopedClause : IMotelyClause
+public interface IAnteScopedClause
 {
     int[] Antes { get; set; }
 }
@@ -26,13 +27,13 @@ public interface IAnteScopedClause : IMotelyClause
 /// Capability for clauses scoped to specific PRNG roll indices instead of antes (the event
 /// clauses — LuckyMoney, WheelOfFortune, MisprintMult, etc.).
 /// </summary>
-public interface IRollScopedClause : IMotelyClause
+public interface IRollScopedClause
 {
     int[] Rolls { get; set; }
 }
 
 /// <summary>Capability for clauses that take a <see cref="MotelyWith"/> block: what the player has on hand.</summary>
-public interface IWithScopedClause : IMotelyClause
+public interface IWithScopedClause
 {
     MotelyWith With { get; set; }
 }

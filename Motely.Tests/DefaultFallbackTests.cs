@@ -97,7 +97,7 @@ public class DefaultFallbackTests
     // unlabeled clause is named in words by what it asks for; scoreN is the last resort,
     // for an and/or with no clauses.
 
-    private static JamlConfig LabelConfig(params IMotelyClause[] should)
+    private static JamlConfig LabelConfig(params MotelyClause[] should)
     {
         var config = new JamlConfig
         {
@@ -164,7 +164,7 @@ public class DefaultFallbackTests
     [Fact]
     public void TallyLabels_EachClauseKind_HasItsWords()
     {
-        (IMotelyClause Clause, string Label)[] cases =
+        (MotelyClause Clause, string Label)[] cases =
         [
             (new JokerClause { Jokers = [MotelyJoker.Blueprint] }, "Blueprint"),
             (new JokerClause { Jokers = [MotelyJoker.Blueprint, MotelyJoker.Brainstorm], Antes = [1] }, "Blueprint or Brainstorm in ante 1"),

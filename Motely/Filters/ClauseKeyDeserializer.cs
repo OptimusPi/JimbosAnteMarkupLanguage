@@ -6,8 +6,9 @@ using YamlDotNet.Serialization.BufferedDeserialization;
 namespace Motely.Filters;
 
 /// <summary>
-/// Clause slots are <see cref="object"/>. The first key that names a clause (<c>joker:</c>,
-/// <c>tag:</c>, <c>or:</c>) picks the concrete class, and the mapping is read again as that class.
+/// Clause slots are <see cref="MotelyClause"/>. The first key that names a clause (<c>joker:</c>,
+/// <c>tag:</c>, <c>or:</c>) picks the clause class, and the mapping is read again as that class.
+/// YamlDotNet's own key discriminator cannot be added to the static builder, so this does that one job.
 /// </summary>
 internal sealed class ClauseKeyDeserializer : INodeDeserializer
 {
@@ -22,12 +23,14 @@ internal sealed class ClauseKeyDeserializer : INodeDeserializer
     )
     {
         value = null;
-        // Only clause slots are object-typed, so a scalar or a list read as one is a clause that is not a mapping.
-        if (expectedType == typeof(object) && reader.Current is Scalar or SequenceStart)
-            throw new YamlException(reader.Current.Start, reader.Current.End, NeedsKey);
-        // YamlDotNet's container resolver has already turned an object-typed mapping into a dictionary.
-        if (expectedType != typeof(Dictionary<object, object>) || reader.Current is not MappingStart start)
+        if (expectedType != typeof(MotelyClause))
             return false;
+        // A scalar or a list in a clause slot is a clause that is not a mapping.
+        if (reader.Current is not MappingStart start)
+        {
+            var at = reader.Current ?? throw new InvalidOperationException(NeedsKey);
+            throw new YamlException(at.Start, at.End, NeedsKey);
+        }
 
         var buffer = new ParserBuffer(reader, maxDepth: 64, maxLength: 100_000);
         buffer.Consume<MappingStart>();

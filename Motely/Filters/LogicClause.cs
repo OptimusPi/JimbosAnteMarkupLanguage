@@ -11,27 +11,12 @@ public enum LogicScoreMode
     Max = 1,
 }
 
-public abstract class LogicClause : IMotelyClause
+public abstract class LogicClause : MotelyClause
 {
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
     public LogicScoreMode Mode { get; set; } = LogicScoreMode.Sum;
 
-    /// <summary>No antes here: each child clause carries its own.</summary>
-    [YamlDotNet.Serialization.YamlIgnore]
-    public IMotelyClause[] Clauses { get; set; } = [];
-
-    /// <summary>The document key <c>clauses:</c>.</summary>
-    [YamlDotNet.Serialization.YamlMember(Alias = "clauses")]
-    public object[]? ClauseNodes
-    {
-        get => Array.ConvertAll(Clauses, static clause => (object)clause);
-        set => Clauses = ClauseTags.Bind(value).ToArray();
-    }
-
-    public abstract IMotelySeedFilterDesc CreateFilterDesc();
+    /// <summary>The document key <c>clauses:</c>. No antes here: each child clause carries its own.</summary>
+    public MotelyClause[] Clauses { get; set => field = value ?? []; } = [];
 }
 
 [YamlDotNet.Serialization.YamlSerializable]
@@ -39,7 +24,7 @@ public sealed partial class AndClause : LogicClause
 {
     /// <summary>The document key <c>and:</c>, holding the child clauses.</summary>
     [YamlDotNet.Serialization.YamlMember(Alias = "and")]
-    public object[]? AndNodes { get => null; set => ClauseNodes = value ?? ClauseNodes; }
+    public MotelyClause[]? AndClauses { get => null; set => Clauses = value ?? Clauses; }
 
     [YamlDotNet.Serialization.YamlIgnore]
     public AndPayload And
@@ -65,7 +50,7 @@ public sealed partial class OrClause : LogicClause
 {
     /// <summary>The document key <c>or:</c>, holding the child clauses.</summary>
     [YamlDotNet.Serialization.YamlMember(Alias = "or")]
-    public object[]? OrNodes { get => null; set => ClauseNodes = value ?? ClauseNodes; }
+    public MotelyClause[]? OrClauses { get => null; set => Clauses = value ?? Clauses; }
 
     [YamlDotNet.Serialization.YamlIgnore]
     public OrPayload Or

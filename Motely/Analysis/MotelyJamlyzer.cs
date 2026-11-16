@@ -618,7 +618,7 @@ public static class MotelyJamlyzer
         return set.Count > 0 ? [.. set] : AllAntes;
     }
 
-    private static void AddAntes(IMotelyClause clause, SortedSet<int> set)
+    private static void AddAntes(MotelyClause clause, SortedSet<int> set)
     {
         if (clause is IAnteScopedClause scoped)
         {
@@ -658,7 +658,7 @@ public static class MotelyJamlyzer
     public static bool OpensAnteZeroSouls(JamlConfig config) =>
         config.Must.Concat(config.Should).Concat(config.MustNot).Any(NamesAnteZeroSoul);
 
-    private static bool NamesAnteZeroSoul(IMotelyClause clause) =>
+    private static bool NamesAnteZeroSoul(MotelyClause clause) =>
         clause switch
         {
             JokerClause c => Array.IndexOf(c.Antes, 0) >= 0 && (c.Jokers.Length == 0 || c.Jokers.Any(j => ((MotelyJokerRarity)((int)j & MotelyGlobals.JokerRarityMask)) == MotelyJokerRarity.Legendary)),
