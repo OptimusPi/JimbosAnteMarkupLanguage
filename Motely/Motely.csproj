@@ -9,6 +9,9 @@
     <GenerateProgramFile>false</GenerateProgramFile>
     <Version>$(MotelyVersion)</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Trim, AOT and single-file analyzers on every build; with TreatWarningsAsErrors, code that
+         would break under NativeAOT fails the build here, not in someone's published app. -->
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
