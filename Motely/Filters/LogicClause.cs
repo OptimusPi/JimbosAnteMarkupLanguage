@@ -29,19 +29,13 @@ public abstract class LogicClause : IMotelyClause
 [YamlDotNet.Serialization.YamlSerializable]
 public sealed partial class AndClause : LogicClause
 {
-    [YamlDotNet.Serialization.YamlIgnore]
-    public AndPayload And
+    /// <summary><c>- and: [clause, ...]</c>: the children, as a plain list.</summary>
+#pragma warning disable YDNG001 // An interface cannot be registered; see MotelyRunConfig.Must.
+    public IMotelyClause[] And
+#pragma warning restore YDNG001
     {
-        get => new() { Mode = Mode, Clauses = Clauses, Label = Label, Min = Min, Max = Max, Score = Score };
-        set
-        {
-            Mode = value.Mode;
-            Clauses = value.Clauses;
-            Label = value.Label;
-            Min = value.Min;
-            Max = value.Max;
-            Score = value.Score;
-        }
+        get => Clauses;
+        set => Clauses = value ?? [];
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() =>
@@ -51,19 +45,13 @@ public sealed partial class AndClause : LogicClause
 [YamlDotNet.Serialization.YamlSerializable]
 public sealed partial class OrClause : LogicClause
 {
-    [YamlDotNet.Serialization.YamlIgnore]
-    public OrPayload Or
+    /// <summary><c>- or: [clause, ...]</c>: the arms, as a plain list.</summary>
+#pragma warning disable YDNG001 // An interface cannot be registered; see MotelyRunConfig.Must.
+    public IMotelyClause[] Or
+#pragma warning restore YDNG001
     {
-        get => new() { Mode = Mode, Clauses = Clauses, Label = Label, Min = Min, Max = Max, Score = Score };
-        set
-        {
-            Mode = value.Mode;
-            Clauses = value.Clauses;
-            Label = value.Label;
-            Min = value.Min;
-            Max = value.Max;
-            Score = value.Score;
-        }
+        get => Clauses;
+        set => Clauses = value ?? [];
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() =>
