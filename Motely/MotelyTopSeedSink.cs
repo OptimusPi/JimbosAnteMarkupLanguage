@@ -154,7 +154,10 @@ public static class MotelyTopSeedSink
                     valueEnd = close!.End.Index;
             }
 
-            int lineEnd = text.IndexOf('\n', (int)valueEnd);
+            // The span runs to the end of the line the value ends on. A block scalar (`- |-`) ends
+            // at the start of the next line, so that mark already is the line end.
+            int end = (int)valueEnd;
+            int lineEnd = end > 0 && text[end - 1] == '\n' ? end - 1 : text.IndexOf('\n', end);
             return new SeedsBlock((int)key.Start.Index, lineEnd < 0 ? text.Length : lineEnd, existing);
         }
 

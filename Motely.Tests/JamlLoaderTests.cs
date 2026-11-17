@@ -116,3 +116,30 @@ public class JamlLoaderTests
         Assert.Contains(message, ex.Message);
     }
 }
+
+public class JamlEventLoaderTests
+{
+    private static LuckyMoneyClause LuckyMoney(string value) =>
+        Assert.IsType<LuckyMoneyClause>(
+            Assert.Single(MotelyRunConfig.FromYaml($"deck: Red\nstake: White\nmust:\n  - luckyMoney: {value}\n").Must)
+        );
+
+    [Fact]
+    public void OneRollIsAListOfOne() => Assert.Equal([1], LuckyMoney("1").Rolls);
+
+    [Fact]
+    public void RollListLoads() => Assert.Equal([1, 2], LuckyMoney("[1, 2]").Rolls);
+
+    [Theory]
+    [InlineData("any")]
+    [InlineData("[]")]
+    public void AnyOrEmptyPinsNoRoll(string value) => Assert.Empty(LuckyMoney(value).Rolls);
+
+    [Fact]
+    public void RollOutOfRangeNamesItsLine()
+    {
+        var ex = Assert.ThrowsAny<YamlDotNet.Core.YamlException>(() => LuckyMoney("[1000]"));
+
+        Assert.Equal(4, ex.Start.Line);
+    }
+}

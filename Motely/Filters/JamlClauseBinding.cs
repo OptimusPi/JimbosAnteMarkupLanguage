@@ -26,6 +26,7 @@ internal static class JamlClauseBinding
         new ScalarOrSequenceConverter<MotelyBoosterPack>(),
         new ScalarOrSequenceConverter<MotelyPokerHand>(),
         new IntListConverter(),
+        new EventRollsConverter(),
     ];
 
     internal static readonly Dictionary<string, Type> ClauseTypeByKey = new(StringComparer.OrdinalIgnoreCase)
@@ -146,6 +147,31 @@ internal static class JamlClauseBinding
     /// (<c>ante: 2</c> is <c>[2]</c>). Each number runs from 0 to <see cref="MotelyGlobals.MaxRollIndex"/>.
     /// A null value stays null, so the property keeps its default.
     /// </summary>
+    /// <summary>
+    /// An event's rolls (<c>luckyMoney: 1</c>, <c>luckyMoney: [1, 2]</c>): a number list read as
+    /// <see cref="IntListConverter"/> reads one. An any-word or an empty list is no roll pinned.
+    /// </summary>
+    internal sealed class EventRollsConverter : IYamlTypeConverter
+    {
+        private static readonly IntListConverter Numbers = new();
+
+        public bool Accepts(Type type) => type == typeof(JamlEventRolls);
+
+        public object ReadYaml(IParser parser, Type type, ObjectDeserializer nested)
+        {
+            if (parser.Current is Scalar scalar && IsAnyWord(scalar.Value))
+            {
+                parser.MoveNext();
+                return new JamlEventRolls();
+            }
+
+            return new JamlEventRolls { Rolls = (int[])Numbers.ReadYaml(parser, typeof(int[]), nested)! };
+        }
+
+        public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer) =>
+            serializer(value, type);
+    }
+
     internal sealed class IntListConverter : IYamlTypeConverter
     {
         public bool Accepts(Type type) => type == typeof(int[]);

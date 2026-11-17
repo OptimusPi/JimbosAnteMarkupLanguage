@@ -72,6 +72,15 @@ public class SeedsBlockTests
     }
 
     [Fact]
+    public void BlockScalarSeedKeepsTheNextField()
+    {
+        Assert.Equal(
+            "seeds:\n  - AAA\n  - NEW1\nmust: []\n",
+            Rewrite("seeds:\n  - |-\n    AAA\nmust: []\n", "NEW1")
+        );
+    }
+
+    [Fact]
     public void RewritingTwiceChangesNothing()
     {
         var once = Rewrite("name: X\nseeds:\n  - AAA\nmust: []\n", "NEW1");
