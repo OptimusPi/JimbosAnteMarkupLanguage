@@ -461,21 +461,25 @@ internal static class MotelyJamlyzerSeedWalk
         // A copy: only VoucherBitfield changes, and the ante walk's own state must not move.
         MotelyRunState sequenceState = voucherState with { };
         int sequenceIndex = 0;
+        MotelyVoucher anteVoucher = default;
         if (resume is not null)
         {
-            // A resumed window is past [0] and [1]: start from the state they left. (A window of
-            // one roll on a glyph ante resumes at [1] and reads it with the bonus redeemed.)
-            MotelyVoucher award = ctx.GetAnteFirstVoucher(ante, voucherState);
-            sequenceState.ActivateVoucher(award);
-            if (award is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph)
+            var fresh = ctx.CreateVoucherStream(ante);
+            while (fresh.ResampleStream.State != resume.VoucherSequence && sequenceIndex < 2)
             {
-                var fresh = ctx.CreateVoucherStream(ante);
-                ctx.GetNextVoucher(ref fresh, voucherState);
-                sequenceState.ActivateVoucher(ctx.GetNextVoucher(ref fresh, sequenceState));
+                var prior = ctx.GetNextVoucher(ref fresh, sequenceState);
+                if (sequenceIndex == 0)
+                {
+                    anteVoucher = prior;
+                    sequenceState.ActivateVoucher(anteVoucher);
+                }
+                else if (sequenceIndex == 1 && anteVoucher is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph)
+                {
+                    sequenceState.ActivateVoucher(prior);
+                }
+                sequenceIndex++;
             }
-            sequenceIndex = 2;
         }
-        MotelyVoucher anteVoucher = default;
 
         for (int i = 0; i < n; i++)
         {

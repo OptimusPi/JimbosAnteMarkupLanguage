@@ -135,10 +135,11 @@ public struct VoucherFilterDesc(VoucherClause clause)
             draws[0] = anteVouchers;
 
             for (int i = 1; i <= neededMax; i++)
+            {
                 draws[i] = ctx.GetNextVoucher(ref voucherStream, voucherState);
-
-            if (anyGlyph)
-                voucherState.ActivateVoucher(draws[1], glyphMask); // the bonus is real, forced
+                if (i == 1 && anyGlyph)
+                    voucherState.ActivateVoucher(draws[1], glyphMask); // the bonus is real, forced
+            }
 
             if (!isTarget)
                 return matchCounts;

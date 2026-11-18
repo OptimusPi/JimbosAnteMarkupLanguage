@@ -24,11 +24,16 @@ public sealed class JamlEventRolls
             {
                 SequenceStart => ReadIntSequence(parser),
                 Scalar scalar when scalar.Value.Trim().Length > 0 => [ReadRoll(parser.Consume<Scalar>())],
+                Scalar => ConsumeEmpty(parser),
                 _ => [],
             };
-            if (rolls.Length == 0)
-                throw new YamlException(start, end, "an event clause needs at least one roll: write a whole number, or a list of them, as in [1, 2].");
             return new JamlEventRolls { Rolls = rolls };
+        }
+
+        private static int[] ConsumeEmpty(IParser parser)
+        {
+            parser.Consume<Scalar>();
+            return [];
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer nested) =>

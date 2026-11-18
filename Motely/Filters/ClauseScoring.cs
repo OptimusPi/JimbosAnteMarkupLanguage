@@ -1145,10 +1145,11 @@ public static class ClauseScoring
             if (isTargetAnte || isGlyph)
             {
                 for (int i = 1; i <= neededMax; i++)
+                {
                     streamDraws[i] = ctx.GetNextVoucher(ref voucherStream, localState);
-
-                if (isGlyph)
-                    localState.ActivateVoucher(streamDraws[1]); // the bonus is a real, forced voucher
+                    if (i == 1 && isGlyph)
+                        localState.ActivateVoucher(streamDraws[1]); // the bonus is a real, forced voucher
+                }
             }
 
             if (!isTargetAnte) continue;
