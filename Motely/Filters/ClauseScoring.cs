@@ -796,7 +796,7 @@ public static class ClauseScoring
 
                     if (etherealWant && !hadNaturalSpectralPack && weightedShopDrawNumber == 2)
                     {
-                        var packSize = pack.GetPackSize();
+                        var packSize = MotelyBoosterPackSize.Normal; // Ethereal Tag grants a Normal 2-card Spectral pack, not the prior pack's size
                         var contents = ctx.GetNextSpectralPackContents(
                             ref spectralStream,
                             packSize
