@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using YamlDotNet.Core;
+using YamlDotNet.Core.Events;
 
 namespace Motely;
 
@@ -69,53 +71,43 @@ public static class MotelyTopSeedSink
     /// normalized (<see cref="MotelyGlobals.NormalizeSeed"/>) and de-duped — no count cap; the
     /// caller's Collector (if any) already decided how many survive.
     /// </summary>
+    /// <remarks>
+    /// The YAML parser finds the <c>seeds:</c> block: its key and value marks give the exact span to
+    /// replace, so everything else in the document, comments included, is kept as written.
+    /// </remarks>
+    /// <exception cref="YamlException">The document is not valid YAML.</exception>
     public static string RewriteSeedsBlock(string jamlText, IReadOnlyList<string> seeds)
     {
-        string normalizedNewline = jamlText.Contains("\r\n", StringComparison.Ordinal)
-            ? "\r\n"
-            : "\n";
+        string newline = jamlText.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var text = jamlText.Replace("\r\n", "\n", StringComparison.Ordinal);
 
-        var originalHasTrailingNewline = jamlText.EndsWith("\n", StringComparison.Ordinal);
-        var lines = jamlText.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
-
-        int seedsStart = FindTopLevelSeedsLine(lines);
-        int seedsEndExclusive =
-            seedsStart >= 0 ? FindNextTopLevelKeyLine(lines, seedsStart + 1) : -1;
-        var existingSeeds =
-            seedsStart >= 0
-                ? ExtractExistingSeeds(lines, seedsStart, seedsEndExclusive)
-                : (IReadOnlyList<string>)[];
-
-        var normalizedSeeds = existingSeeds
+        var block = FindSeedsBlock(text);
+        var merged = (block?.Existing ?? [])
             .Concat(seeds)
             .Where(static seed => seed is not null && (seed.Length == 0 || !string.IsNullOrWhiteSpace(seed)))
             .Select(static seed => MotelyGlobals.NormalizeSeed(seed))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+        var replacement = string.Join("\n", BuildSeedsBlockLines(merged));
 
-        var replacementLines = BuildSeedsBlockLines(normalizedSeeds);
-
-        if (seedsStart >= 0)
+        string updated;
+        if (block is { } found)
         {
-            lines.RemoveRange(seedsStart, seedsEndExclusive - seedsStart);
-            lines.InsertRange(seedsStart, replacementLines);
+            updated = text[..found.Start] + replacement + text[found.End..];
+            if (!updated.EndsWith('\n'))
+                updated += "\n";
         }
         else
         {
+            var lines = text.Split('\n').ToList();
             while (lines.Count > 0 && string.IsNullOrWhiteSpace(lines[^1]))
                 lines.RemoveAt(lines.Count - 1);
-
-            if (lines.Count > 0)
-                lines.Add(string.Empty);
-
-            lines.AddRange(replacementLines);
+            updated = lines.Count > 0
+                ? string.Join("\n", lines) + "\n\n" + replacement + "\n"
+                : replacement + "\n";
         }
 
-        var updated = string.Join(normalizedNewline, lines);
-        if (originalHasTrailingNewline || lines.Count > 0)
-            updated += normalizedNewline;
-
-        return updated;
+        return newline == "\n" ? updated : updated.Replace("\n", newline, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -142,75 +134,73 @@ public static class MotelyTopSeedSink
     }
 
     /// <summary>
-    /// Pull the seeds already present in a <c>seeds:</c> region, in document order. Handles both
-    /// the block form (<c>- SEED</c> items) and the inline form (<c>seeds: [A, B]</c>), tolerating
-    /// quotes and trailing <c>#</c> comments (a '#' can never be part of a seed — the seed
-    /// alphabet is alphanumeric).
+    /// The top-level <c>seeds:</c> entry: the span from its key to the end of the line its value
+    /// ends on, and the seeds it already lists in document order. Null if the document has none.
     /// </summary>
-    private static List<string> ExtractExistingSeeds(
-        IReadOnlyList<string> lines,
-        int seedsStart,
-        int seedsEndExclusive
-    )
+    private static SeedsBlock? FindSeedsBlock(string text)
     {
-        var seeds = new List<string>();
+        var parser = new Parser(new System.IO.StringReader(text));
+        parser.Consume<StreamStart>();
+        if (!parser.TryConsume<DocumentStart>(out _) || !parser.TryConsume<MappingStart>(out _))
+            return null;
 
-        var firstLine = lines[seedsStart];
-        var inlineValue = StripComment(firstLine[(firstLine.IndexOf(':') + 1)..]).Trim();
-        int blockStart = seedsStart + 1;
-        if (inlineValue.StartsWith('['))
+        while (!parser.TryConsume<MappingEnd>(out _))
         {
-            // A flow list may run across lines: seeds: [A,\n  B]. Read it to its closing bracket.
-            for (; blockStart < seedsEndExclusive && !inlineValue.Contains(']'); blockStart++)
-                inlineValue += " " + StripComment(lines[blockStart]).Trim();
-        }
-        inlineValue = inlineValue.TrimStart('[').TrimEnd(']');
-        foreach (var part in inlineValue.Split(',', StringSplitOptions.TrimEntries))
-        {
-            if (part is "\"\"" or "''")
+            var key = parser.Consume<Scalar>();
+            if (!string.Equals(key.Value, "seeds", StringComparison.OrdinalIgnoreCase))
             {
-                seeds.Add(string.Empty);
+                parser.SkipThisAndNestedEvents();
                 continue;
             }
-            if (IsYamlNull(part))
-                continue;
-            var seed = part.Trim('"', '\'');
-            if (seed.Length > 0)
-                seeds.Add(seed);
-        }
 
-        for (int i = blockStart; i < seedsEndExclusive; i++)
-        {
-            var trimmed = lines[i].Trim();
-            if (!trimmed.StartsWith("- ", StringComparison.Ordinal))
-                continue;
-
-            var item = StripComment(trimmed[2..]).Trim();
-            if (item is "\"\"" or "''")
+            var existing = new List<string>();
+            long valueEnd;
+            if (parser.TryConsume<Scalar>(out var scalar))
             {
-                seeds.Add(string.Empty);
-                continue;
+                AddSeed(existing, scalar);
+                valueEnd = scalar.End.Index;
             }
-            if (IsYamlNull(item))
-                continue;
-            var seed = item.Trim('"', '\'');
-            if (seed.Length > 0)
-                seeds.Add(seed);
+            else
+            {
+                var sequence = parser.Consume<SequenceStart>();
+                valueEnd = sequence.End.Index;
+                SequenceEnd? close;
+                while (!parser.TryConsume<SequenceEnd>(out close))
+                {
+                    var item = parser.Consume<Scalar>();
+                    AddSeed(existing, item);
+                    valueEnd = item.End.Index;
+                }
+                // A flow list ends at its `]`; a block list ends at its last item (its SequenceEnd
+                // mark sits on the next key).
+                if (sequence.Style == SequenceStyle.Flow)
+                    valueEnd = close!.End.Index;
+            }
+
+            // The span runs to the end of the line the value ends on. A block scalar (`- |-`) ends
+            // at the start of the next line, so that mark already is the line end.
+            int end = (int)valueEnd;
+            int lineEnd = end > 0 && text[end - 1] == '\n' ? end - 1 : text.IndexOf('\n', end);
+            return new SeedsBlock((int)key.Start.Index, lineEnd < 0 ? text.Length : lineEnd, existing);
         }
 
-        return seeds;
+        return null;
     }
 
-    /// <summary>YAML's null, as the loader reads an unquoted scalar: no seed, not a seed named "~".</summary>
-    private static bool IsYamlNull(string scalar) => scalar is "~" or "null" or "Null" or "NULL";
-
-    private static string StripComment(string text)
+    /// <summary>
+    /// A listed seed: a quoted empty string is the empty seed; YAML's null (unquoted <c>~</c>,
+    /// <c>null</c>, or nothing) is no seed.
+    /// </summary>
+    private static void AddSeed(List<string> seeds, Scalar scalar)
     {
-        int commentIndex = text.IndexOf('#');
-        return commentIndex >= 0 ? text[..commentIndex] : text;
+        if (scalar.Style == ScalarStyle.Plain && scalar.Value is "" or "~" or "null" or "Null" or "NULL")
+            return;
+        seeds.Add(scalar.Value);
     }
 
-        private static List<string> BuildSeedsBlockLines(IReadOnlyList<string> seeds)
+    private sealed record SeedsBlock(int Start, int End, List<string> Existing);
+
+    private static List<string> BuildSeedsBlockLines(IReadOnlyList<string> seeds)
     {
         if (seeds.Count == 0)
             return ["seeds: []"];
@@ -219,53 +209,5 @@ public static class MotelyTopSeedSink
         // Unquoted, the seed NULL is YAML's null and the file would no longer load.
         lines.AddRange(seeds.Select(static seed => seed is "" or "NULL" ? $"  - \"{seed}\"" : $"  - {seed}"));
         return lines;
-    }
-
-    private static int FindTopLevelSeedsLine(IReadOnlyList<string> lines)
-    {
-        for (int i = 0; i < lines.Count; i++)
-        {
-            if (!TryGetTopLevelKey(lines[i], out var key))
-                continue;
-
-            if (string.Equals(key, "seeds", StringComparison.OrdinalIgnoreCase))
-                return i;
-        }
-
-        return -1;
-    }
-
-    private static int FindNextTopLevelKeyLine(IReadOnlyList<string> lines, int startIndex)
-    {
-        for (int i = startIndex; i < lines.Count; i++)
-        {
-            if (TryGetTopLevelKey(lines[i], out _))
-                return i;
-        }
-
-        return lines.Count;
-    }
-
-    private static bool TryGetTopLevelKey(string line, out string? key)
-    {
-        key = null;
-        if (string.IsNullOrWhiteSpace(line))
-            return false;
-        if (char.IsWhiteSpace(line[0]))
-            return false;
-
-        var trimmed = line.Trim();
-        if (
-            trimmed.StartsWith("#", StringComparison.Ordinal)
-            || trimmed.StartsWith("-", StringComparison.Ordinal)
-        )
-            return false;
-
-        int colonIndex = trimmed.IndexOf(':');
-        if (colonIndex <= 0)
-            return false;
-
-        key = trimmed[..colonIndex].Trim();
-        return key.Length > 0;
     }
 }
