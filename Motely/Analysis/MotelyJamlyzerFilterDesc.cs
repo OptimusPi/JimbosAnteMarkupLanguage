@@ -454,6 +454,29 @@ internal static class MotelyJamlyzerSeedWalk
         MotelyItem[] seance = new MotelyItem[n];
         MotelyVoucher[] vouchers = new MotelyVoucher[n];
 
+        // The ante's voucher stream, read the way a voucher: clause reads it: [0] is the ante's
+        // voucher, drawn before it is redeemed; from [1] on it is redeemed, and when [0] is
+        // Hieroglyph/Petroglyph the bonus at [1] (back in this ante after the ante below's boss)
+        // is redeemed too. Without this, [1] could never be Petroglyph after Hieroglyph.
+        // A copy: only VoucherBitfield changes, and the ante walk's own state must not move.
+        MotelyRunState sequenceState = voucherState with { };
+        int sequenceIndex = 0;
+        if (resume is not null)
+        {
+            // A resumed window is past [0] and [1]: start from the state they left. (A window of
+            // one roll on a glyph ante resumes at [1] and reads it with the bonus redeemed.)
+            MotelyVoucher award = ctx.GetAnteFirstVoucher(ante, voucherState);
+            sequenceState.ActivateVoucher(award);
+            if (award is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph)
+            {
+                var fresh = ctx.CreateVoucherStream(ante);
+                ctx.GetNextVoucher(ref fresh, voucherState);
+                sequenceState.ActivateVoucher(ctx.GetNextVoucher(ref fresh, sequenceState));
+            }
+            sequenceIndex = 2;
+        }
+        MotelyVoucher anteVoucher = default;
+
         for (int i = 0; i < n; i++)
         {
             judgement[i] = ctx.GetNextJoker(ref judgementStream);
@@ -469,7 +492,17 @@ internal static class MotelyJamlyzerSeedWalk
             purpleSeal[i] = ctx.GetNextTarot(ref purpleSealStream);
             sixthSense[i] = ctx.GetNextSpectral(ref sixthSenseStream);
             seance[i] = ctx.GetNextSpectral(ref seanceStream);
-            vouchers[i] = ctx.GetNextVoucher(ref voucherStream, voucherState);
+            vouchers[i] = ctx.GetNextVoucher(ref voucherStream, sequenceState);
+            if (sequenceIndex == 0)
+            {
+                anteVoucher = vouchers[i];
+                sequenceState.ActivateVoucher(anteVoucher);
+            }
+            else if (sequenceIndex == 1 && anteVoucher is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph)
+            {
+                sequenceState.ActivateVoucher(vouchers[i]);
+            }
+            sequenceIndex++;
         }
 
         return (
