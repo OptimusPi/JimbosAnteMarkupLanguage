@@ -4,7 +4,7 @@ namespace Motely.Tests;
 
 /// <summary>
 /// JAML arrives from the browser build and from other people's files. Out-of-range or malformed
-/// input must be a load error, never a process kill, a hang, or a wrapped score.
+/// input must be a load error, never a crashed process, a hang, or a wrapped score.
 /// </summary>
 public sealed class JamlAdversarialTests
 {

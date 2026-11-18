@@ -128,7 +128,7 @@ public sealed class JamlTextConversionTests
     public void DeepNesting_IsRefusedAtItsLine()
     {
         // YamlDotNet builds nodes by recursion: 5,000 levels overflowed the stack, and in wasm
-        // killed the module. Past 64 levels both readers refuse, as JSON's own reader does.
+        // stopped the module. Past 64 levels both readers refuse, as JSON's own reader does.
         var deep = "must:\n  - !joker\n    joker: Joker\n    antes: " + new string('[', 100_000) + new string(']', 100_000) + "\n";
         // ToJson builds the node tree, so the depth cap is what stops it.
         var json = Assert.Throws<JamlFilterException>(() => JamlConfig.ToJson(deep));

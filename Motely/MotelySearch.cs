@@ -314,7 +314,7 @@ public sealed class MotelySearchSettings<TBaseFilter>(
     public MotelySearchSettings<TBaseFilter> WithStartBatchIndex(long startBatchIndex)
     {
         // A negative batch indexes the seed alphabet with a negative digit — the worker thread
-        // dies on an IndexOutOfRangeException instead of searching anything.
+        // stops on an IndexOutOfRangeException instead of searching anything.
         ArgumentOutOfRangeException.ThrowIfNegative(startBatchIndex);
         StartBatchIndex = startBatchIndex;
         return this;

@@ -127,7 +127,7 @@ public static class CliSearchMode
         bool hasKeywordMode = input.KeywordInputs.Count > 0;
 
         // --padding with no seed character in it reached the engine as an empty alphabet, and a
-        // short keyword without one tripped the engine's own guard: both died with a stack trace.
+        // short keyword without one tripped the engine's own guard: both stopped with a stack trace.
         char[]? paddingChars = null;
         if (input.PaddingCharsOption is not null)
         {

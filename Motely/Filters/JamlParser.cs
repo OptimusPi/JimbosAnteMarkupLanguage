@@ -7,7 +7,7 @@ namespace Motely.Filters;
 /// YamlDotNet's parser, held to what a filter can be: one document, nested at most
 /// <see cref="MaxDepth"/> levels (the root counts as one, as in JSON). YamlDotNet builds nodes and
 /// objects by recursion, so a deeper document overflows the stack before anything can object, and
-/// in the wasm build that kills the module. <see cref="JamlConfigLoader.FromJaml"/> and
+/// in the wasm build that stops the module. <see cref="JamlConfigLoader.FromJaml"/> and
 /// <see cref="JamlConfigLoader.ToJson"/> both read through it, and its refusals are
 /// <see cref="YamlException"/>s, so each reports the line as for any other YAML error.
 /// </summary>
