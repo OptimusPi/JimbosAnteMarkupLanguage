@@ -1133,6 +1133,15 @@ public static class ClauseScoring
             var voucherStream = ctx.CreateVoucherStream(ante);
             var voucher = ctx.GetNextVoucher(ref voucherStream, localState);
             localState.ActivateVoucher(voucher);
+            if (voucher is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph)
+            {
+                // Same as ApplyPrepareRunState: the glyph sends the run back an ante and the
+                // shop offers the next voucher on this stream, with the glyph redeemed.
+                var bonus = ctx.GetNextVoucher(ref voucherStream, localState);
+                localState.ActivateVoucher(bonus);
+                if (ArrayContains(clause.Antes, ante) && Names(clause.Vouchers, bonus))
+                    count++;
+            }
             if (ArrayContains(clause.Antes, ante))
             {
                 for (int i = 1; i <= maxVoucherRoll; i++)

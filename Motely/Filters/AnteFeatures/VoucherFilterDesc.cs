@@ -93,9 +93,7 @@ public struct VoucherFilterDesc(VoucherClause clause)
                 }
                 if (!glyphMask.IsAllFalse())
                 {
-                    var bonusStream = ctx.CreateVoucherStream(ante);
-                    ctx.GetNextVoucher(ref bonusStream, voucherState);
-                    var bonus = ctx.GetNextVoucher(ref bonusStream, voucherState);
+                    var bonus = ctx.GetNextVoucher(ref voucherStream, voucherState);
                     voucherState.ActivateVoucher(bonus, glyphMask);
                     matchCounts = AddVoucherMatches(matchCounts, bonus, clause, glyphMask);
                 }
