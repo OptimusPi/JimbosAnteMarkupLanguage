@@ -12,7 +12,6 @@ public sealed class CliSearchModeTests
             SeedsArgument: null,
             Replay: false,
             JamlPath: null,
-            FilterId: null,
             JamlSeeds: null,
             KeywordInputs: [],
             PaddingCharsOption: null,

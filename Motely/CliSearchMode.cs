@@ -14,7 +14,6 @@ public static class CliSearchMode
         string? SeedsArgument,
         bool Replay,
         string? JamlPath,
-        string? FilterId,
         IReadOnlyList<string>? JamlSeeds,
         IReadOnlyList<string> KeywordInputs,
         string? PaddingCharsOption,
@@ -26,7 +25,8 @@ public static class CliSearchMode
         string? StartSeed,
         string? StopSeed,
         int? BatchCharacterCount,
-        bool AllowSeedFile = true
+        bool AllowSeedFile = true,
+        bool HasExternalSeeds = false
     );
 
     /// <summary>Default batch character count when the caller didn't pass one explicitly.</summary>
@@ -42,12 +42,7 @@ public static class CliSearchMode
     /// </summary>
     public static bool TryNormalizeSeed(string input, [NotNullWhen(true)] out string? seed)
     {
-        if (input is null)
-        {
-            seed = null;
-            return false;
-        }
-        if (input.Length > 0 && input.AsSpan().Trim().IsEmpty)
+        if (input is null || (input.Length > 0 && string.IsNullOrWhiteSpace(input)))
         {
             seed = null;
             return false;
@@ -81,7 +76,7 @@ public static class CliSearchMode
         updated = settings;
         error = null;
 
-        bool hasSeedsArg = input.SeedsArgument is not null;
+        bool hasSeedsArg = input.SeedsArgument is not null || input.HasExternalSeeds;
         bool hasReplayMode = input.Replay;
 
         MotelyAesthetic? explicitAesthetic = null;
@@ -191,6 +186,11 @@ public static class CliSearchMode
             return false;
         }
 
+        if (input.HasExternalSeeds)
+        {
+            return true;
+        }
+
         string[]? explicitSeeds = null;
 
         if (hasReplayMode)
@@ -209,16 +209,8 @@ public static class CliSearchMode
         }
         else if (hasSeedsArg)
         {
-            if (input.AllowSeedFile)
-            {
-                if (!TryResolveSeeds(input.SeedsArgument!, out explicitSeeds, out error))
-                    return false;
-            }
-            else
-            {
-                if (!TryResolveInlineSeeds(input.SeedsArgument!, out explicitSeeds, out error))
-                    return false;
-            }
+            if (!ResolveSeedsCore(input.SeedsArgument!, input.AllowSeedFile, out explicitSeeds, out error))
+                return false;
         }
 
         if (explicitSeeds != null)
@@ -241,22 +233,16 @@ public static class CliSearchMode
         }
         else if (aestheticAll)
         {
-            // --aesthetic all: concat every family (palindrome → … → fibonacci). Same pad law as
-            // single --aesthetic: full alphabet unless --padding. (Default --collect without
-            // --aesthetic still uses digit pad + sequential fallback in Program.)
             updated = updated.WithAllAesthetics(
                 MotelyAestheticParser.AllAesthetics(),
-                Padding(input.PaddingCharsOption)
+                paddingChars
             );
         }
         else if (explicitAesthetic.HasValue)
         {
-            // --padding mixes with --aesthetic: free slots / keyword pads use that charset.
-            // Default when omitted: full alphabet (explicit single-family search). Collect's
-            // multi-family prepass defaults to digit pad separately in Program.
             updated = updated.WithAestheticSearch(
                 explicitAesthetic.Value,
-                Padding(input.PaddingCharsOption)
+                paddingChars
             );
         }
         // The JAML seeds: replay and the sequential sweep are the *default* modes — they apply
@@ -383,46 +369,7 @@ public static class CliSearchMode
         string value,
         [NotNullWhen(true)] out string[]? seeds,
         [NotNullWhen(false)] out string? error
-    )
-    {
-        seeds = null;
-        if (value.Length == 0)
-        {
-            seeds = [string.Empty];
-            error = null;
-            return true;
-        }
-
-        List<string> list;
-        if (value.Trim() == "-")
-            list = ReadSeedFile(Console.In, "stdin");
-        else if (File.Exists(value))
-        {
-            using var reader = File.OpenText(value);
-            list = ReadSeedFile(reader, value);
-        }
-        else if (
-            value.Contains(Path.DirectorySeparatorChar)
-            || value.Contains(Path.AltDirectorySeparatorChar)
-            || Path.HasExtension(value)
-        )
-        {
-            error = $"Error: --seeds: no seed file at {Path.GetFullPath(value)}.";
-            return false;
-        }
-        else if (!TryParseInlineSeeds(value, out list, out error))
-            return false;
-
-        seeds = [.. list.Distinct()];
-        if (seeds.Length == 0)
-        {
-            error = $"Error: --seeds: no seeds in '{value}'.";
-            seeds = null;
-            return false;
-        }
-        error = null;
-        return true;
-    }
+    ) => ResolveSeedsCore(value, allowFiles: true, out seeds, out error);
 
     /// <summary>
     /// Server-safe inline seed resolver: accepts comma-separated inline seeds only, rejecting "-"
@@ -430,6 +377,13 @@ public static class CliSearchMode
     /// </summary>
     public static bool TryResolveInlineSeeds(
         string value,
+        [NotNullWhen(true)] out string[]? seeds,
+        [NotNullWhen(false)] out string? error
+    ) => ResolveSeedsCore(value, allowFiles: false, out seeds, out error);
+
+    private static bool ResolveSeedsCore(
+        string value,
+        bool allowFiles,
         [NotNullWhen(true)] out string[]? seeds,
         [NotNullWhen(false)] out string? error
     )
@@ -449,25 +403,37 @@ public static class CliSearchMode
             return false;
         }
 
+        List<string> list;
         if (trimmed == "-")
         {
-            error = "Error: --seeds: '-' (stdin) is not allowed here; pass comma-separated inline seeds.";
-            return false;
+            if (!allowFiles)
+            {
+                error = "Error: --seeds: '-' (stdin) is not allowed here; pass comma-separated inline seeds.";
+                return false;
+            }
+            list = ReadSeedFile(Console.In, "stdin");
         }
-
-        if (
+        else if (allowFiles && File.Exists(value))
+        {
+            using var reader = File.OpenText(value);
+            list = ReadSeedFile(reader, value);
+        }
+        else if (
             trimmed.Contains(Path.DirectorySeparatorChar)
             || trimmed.Contains(Path.AltDirectorySeparatorChar)
-            || trimmed.Contains(':')
+            || (!allowFiles && trimmed.Contains(':'))
             || Path.HasExtension(trimmed)
         )
         {
-            error = "Error: --seeds: file paths are not allowed on the server; pass comma-separated inline seeds.";
+            error = allowFiles
+                ? $"Error: --seeds: no seed file at {Path.GetFullPath(value)}."
+                : "Error: --seeds: file paths are not allowed on the server; pass comma-separated inline seeds.";
             return false;
         }
-
-        if (!TryParseInlineSeeds(trimmed, out var list, out error))
+        else if (!TryParseInlineSeeds(trimmed, out list, out error))
+        {
             return false;
+        }
 
         seeds = [.. list.Distinct()];
         if (seeds.Length == 0)
@@ -476,7 +442,6 @@ public static class CliSearchMode
             seeds = null;
             return false;
         }
-
         error = null;
         return true;
     }

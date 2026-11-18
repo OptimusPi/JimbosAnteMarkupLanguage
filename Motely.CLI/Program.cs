@@ -47,10 +47,10 @@ Option<string> seedsOption = new("--seeds")
     Description = "Search exactly these seeds: comma-separated, a seed file (first column; a motely CSV works), or - for stdin.",
 };
 Option<bool> replayOption = new("--replay") { Description = "Search the filter file's own seeds: block." };
-Option<string> keywordOption = new("--keyword") { Description = "Search seeds containing this word." };
-Option<string> keywordsOption = new("--keywords")
+Option<string[]> keywordOption = new("--keyword", "--keywords")
 {
-    Description = "Search seeds containing any of these comma-separated words.",
+    Description = "Search seeds containing this word (or comma-separated words).",
+    DefaultValueFactory = _ => [],
 };
 Option<int?> randomOption = new("--random") { Description = "Search N random seeds." };
 Option<string> aestheticOption = new("--aesthetic")
@@ -91,7 +91,20 @@ Option<string> cutoffOption = new("--cutoff")
 };
 Option<bool> saveOption = new("--save")
 {
-    Description = "Merge the printed seeds into the filter file's seeds: block (its existing seeds stay first).",
+    Description = "Merge the top seeds into the filter file's seeds: block (its existing seeds stay first).",
+};
+Option<int> saveLimitOption = new("--save-limit")
+{
+    Description = "Maximum seeds written into the filter file's seeds: block with --save (default 2000; 0 = unlimited).",
+    DefaultValueFactory = _ => 2000,
+};
+Option<string?> outOption = new("--out")
+{
+    Description = "Write every match (seed, score, tally1..tallyN) to a .duckdb database or ZSTD .parquet file via DuckDB.",
+};
+Option<bool> jamlyzeOption = new("--jamlyze")
+{
+    Description = "With --out, attach the Jamlyzer rider for the filter's ante window and store it in the window column.",
 };
 Option<bool> quietOption = new("--quiet", "-q") { Description = "No startup line and no progress line on stderr." };
 
@@ -104,7 +117,6 @@ RootCommand rootCommand = new("Balatro seed search.")
     seedsOption,
     replayOption,
     keywordOption,
-    keywordsOption,
     randomOption,
     aestheticOption,
     paddingOption,
@@ -117,6 +129,9 @@ RootCommand rootCommand = new("Balatro seed search.")
     collectOption,
     cutoffOption,
     saveOption,
+    saveLimitOption,
+    outOption,
+    jamlyzeOption,
     quietOption,
 };
 
@@ -218,19 +233,24 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
     string? stopSeed = parseResult.GetValue(stopSeedOption);
 
     List<string> keywords = [];
-    if (parseResult.GetValue(keywordOption) is { } keyword)
-        keywords.Add(keyword);
-    if (parseResult.GetValue(keywordsOption) is { } keywordList)
-        keywords.AddRange(keywordList.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    foreach (string entry in parseResult.GetValue(keywordOption) ?? [])
+    {
+        if (string.IsNullOrWhiteSpace(entry))
+        {
+            keywords.Add(entry);
+            continue;
+        }
+        keywords.AddRange(entry.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
 
+    bool useDuckSeeds = seedsArgument is not null && DuckDbSeedProvider.HandlesPath(seedsArgument);
     if (
         !CliSearchMode.TryApplySearchMode(
             plan.Settings.WithDeck(deck).WithStake(stake).WithThreadCount(threads),
             new CliSearchMode.Input(
-                SeedsArgument: seedsArgument,
+                SeedsArgument: useDuckSeeds ? null : seedsArgument,
                 Replay: replay,
                 JamlPath: path,
-                FilterId: config.Id,
                 JamlSeeds: config.Seeds,
                 KeywordInputs: keywords,
                 PaddingCharsOption: parseResult.GetValue(paddingOption),
@@ -241,7 +261,8 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
                 StartPercent: parseResult.GetValue(startPercentOption),
                 StartSeed: startSeed,
                 StopSeed: stopSeed,
-                BatchCharacterCount: batchCharCountGiven
+                BatchCharacterCount: batchCharCountGiven,
+                HasExternalSeeds: useDuckSeeds
             ),
             out var modeError,
             out var settings
@@ -252,9 +273,63 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
         return 1;
     }
 
+    DuckDbSeedProvider? duckSeedProvider = null;
+    if (useDuckSeeds)
+    {
+        try
+        {
+            duckSeedProvider = new DuckDbSeedProvider(seedsArgument!);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: could not open seed source '{seedsArgument}': {ex.Message}");
+            return 1;
+        }
+    }
+
+    using var _disposeDuckSeedProvider = duckSeedProvider;
+    if (duckSeedProvider is not null)
+    {
+        settings = settings.WithSeedGenerator(
+            duckSeedProvider.EnumerateSeeds(),
+            (int)Math.Min(duckSeedProvider.SeedCount, int.MaxValue)
+        );
+    }
+
+    string? outPath = parseResult.GetValue(outOption);
+    bool jamlyze = parseResult.GetValue(jamlyzeOption);
+    int saveLimit = parseResult.GetValue(saveLimitOption);
+    if (saveLimit < 0)
+    {
+        Console.Error.WriteLine("Error: --save-limit needs a count of 0 or more.");
+        return 1;
+    }
+
     bool quiet = parseResult.GetValue(quietOption);
-    using var sink = new ConsoleResultSink(plan.TallyLabels);
-    var saved = parseResult.GetValue(saveOption) ? new MotelyTopSeedSink.Collector(int.MaxValue) : null;
+    using var consoleSink = new ConsoleResultSink(plan.TallyLabels);
+    DuckDbResultSink? duckSink = null;
+    if (!string.IsNullOrWhiteSpace(outPath))
+    {
+        try
+        {
+            duckSink = new DuckDbResultSink(outPath, plan.ScoreTallyColumnCount, includeWindow: jamlyze);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: could not open output '{outPath}': {ex.Message}");
+            return 1;
+        }
+    }
+    using var _disposeDuckSink = duckSink;
+
+    IMotelyResultSink sink = duckSink is not null
+        ? new CompositeMotelyResultSink([consoleSink, duckSink])
+        : consoleSink;
+
+    bool doSave = parseResult.GetValue(saveOption);
+    int collectorCap = saveLimit == 0 ? int.MaxValue : saveLimit;
+    // When DuckDB is already capturing every match, pull top-N straight from DuckDB instead of hoarding strings in RAM.
+    var saved = doSave && duckSink is null ? new MotelyTopSeedSink.Collector(collectorCap) : null;
 
     // A filter with no score provider (nothing for the scoring pass to evaluate and no floor above
     // zero) sends its finds only on the seed-match channel. With a provider they arrive on both,
@@ -262,6 +337,15 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
     // The engine applies a fixed floor or auto's rate limiter (clamps to its per-thread running
     // max only while finds flood in). Max is one record across every thread, so it gates here.
     settings = settings.WithScoredResultGate(cutoff.IsMax ? cutoff.ShouldEmit : null);
+    if (duckSink is not null)
+        settings = settings.WithBatchBoundaryCallback(duckSink.Flush);
+    if (duckSink is not null && jamlyze)
+    {
+        settings = settings.WithSeedAnalyzeProvider(
+            MotelyJamlyzer.CreateRiderDesc(config, duckSink.OnAnalyzed, eventRolls: 0)
+        );
+    }
+
     settings = settings.SeedScoreDesc is not null
         ? settings
             .WithAutoScoreCutoff(cutoff.IsAuto)
@@ -347,10 +431,14 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
     }
     telemetry.Finish(search, interrupted ? "interrupted" : search.StoppedOnMatchLimit ? "stopped" : "finished");
 
+    duckSink?.Flush();
+
     bool saveFailed = false;
-    if (saved is not null)
+    if (doSave)
     {
-        var seeds = saved.GetSeeds();
+        IReadOnlyList<string> seeds = duckSink is not null
+            ? duckSink.GetTopSeeds(collectorCap)
+            : saved!.GetSeeds();
         string? saveError;
         try
         {

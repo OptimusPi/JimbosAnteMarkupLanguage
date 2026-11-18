@@ -190,11 +190,19 @@ public static class MotelySearchBuilder
     {
         int floor = engineCutoff ?? config.Cutoff ?? int.MinValue;
 
-        // A JAML with no must/should/mustNot clauses is a valid, real search: deck/stake/seeds
-        // and nothing else, with the host's own predicate free to drive the whole decision while
-        // the floor is zero or below.
+        var simdMust = config.Must.Where(ClauseScoring.CanChainInSimd).OrderBy(EstimateSimdCost).ToList();
+        IMotelySearchSettings? promoted = null;
+        if (simdMust.Count > 0 && TryCreateBaseSettings(simdMust[0].CreateFilterDesc()) is { } baseSettings)
+        {
+            promoted = baseSettings;
+            simdMust.RemoveAt(0);
+        }
+
+        // A JAML with no must/should/mustNot clauses (or a compound/fallback first clause) starts
+        // from PassthroughFilterDesc, with the host's own predicate free to drive the decision.
         IMotelySearchSettings settings =
-            new MotelySearchSettings<PassthroughFilterDesc.PassthroughFilter>(
+            promoted
+            ?? new MotelySearchSettings<PassthroughFilterDesc.PassthroughFilter>(
                 new PassthroughFilterDesc()
             );
 
@@ -210,13 +218,11 @@ public static class MotelySearchBuilder
         var simdMustNot = config.MustNot.Where(ClauseScoring.IsExactFilterConfirm).ToArray();
         var scoredMustNot = config.MustNot.Where(c => !ClauseScoring.IsExactFilterConfirm(c)).ToArray();
 
-        // SIMD filter chain: must + mustNot cheapest-first so trivial clauses reject lanes before
-        // expensive SearchIndividualSeeds arms. Does not mutate the config; scoring still sees
-        // authored must/should order (tally columns + must re-eval). A must that zero occurrences
-        // satisfy (min: 0) stays out: the scoring pass re-evaluates every must, so it still holds.
+        // SIMD filter chain: remaining must + exact mustNot cheapest-first so trivial clauses reject
+        // lanes before expensive SearchIndividualSeeds arms. Does not mutate the config; scoring still
+        // sees authored must/should order (tally columns + must re-eval).
         foreach (
-            var (clause, negate) in config
-                .Must.Where(ClauseScoring.CanChainInSimd)
+            var (clause, negate) in simdMust
                 .Select(c => (clause: c, negate: false))
                 .Concat(simdMustNot.Select(c => (clause: c, negate: true)))
                 .OrderBy(static entry => EstimateSimdCost(entry.clause))
@@ -242,6 +248,37 @@ public static class MotelySearchBuilder
 
         return settings;
     }
+
+    private static IMotelySearchSettings? TryCreateBaseSettings(IMotelySeedFilterDesc desc) =>
+        desc switch
+        {
+            BossFilterDesc d => CreateBase(d),
+            TagFilterDesc d => CreateBase(d),
+            VoucherFilterDesc d => CreateBase(d),
+            BoosterPackFilterDesc d => CreateBase(d),
+            PokerHandFilterDesc d => CreateBase(d),
+            StartingDrawFilterDesc d => CreateBase(d),
+            ErraticRankFilterDesc d => CreateBase(d),
+            ErraticSuitFilterDesc d => CreateBase(d),
+            LegendarySoulOrderFilterDesc d => CreateBase(d),
+            LegendaryJokerFilterDesc d => CreateBase(d),
+            RareJokerFilterDesc d => CreateBase(d),
+            UncommonJokerFilterDesc d => CreateBase(d),
+            CommonJokerFilterDesc d => CreateBase(d),
+            JokerFilterDesc d => CreateBase(d),
+            PlanetCardFilterDesc d => CreateBase(d),
+            TarotCardFilterDesc d => CreateBase(d),
+            SpectralCardFilterDesc d => CreateBase(d),
+            SpecialSpectralCardFilterDesc d => CreateBase(d),
+            StandardCardFilterDesc d => CreateBase(d),
+            AndFilterDesc d => CreateBase(d),
+            OrFilterDesc d => CreateBase(d),
+            _ => null,
+        };
+
+    private static IMotelySearchSettings CreateBase<TFilter>(IMotelySeedFilterDesc<TFilter> desc)
+        where TFilter : struct, IMotelySeedFilter =>
+        new MotelySearchSettings<TFilter>(desc);
 
     internal static int EstimateSimdCost(MotelyClause clause) =>
         clause switch

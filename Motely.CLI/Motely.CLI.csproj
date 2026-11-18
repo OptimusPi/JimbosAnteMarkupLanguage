@@ -41,6 +41,11 @@
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="DuckDB.NET.Data.Full" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Motely.Tests" />
   </ItemGroup>
 
   <ItemGroup>

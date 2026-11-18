@@ -126,9 +126,75 @@ public struct VectorLuaRandom
             + Vector256.Create<int>(min);
     }
 
+    // One 128-bit quarter of RandInt(seed). Used where Vector512 is not hardware accelerated
+    // (arm64 NEON, WASM SIMD): there the JIT emulates Vector512 as 4x128 and stops inlining the
+    // operators, so running the same Tausworthe steps on real Vector128 lanes is much faster.
+    // Bit-identical to the Vector512 path below.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<ulong> RandInt128(Vector128<double> d)
+    {
+        Vector128<double> pi = Vector128.Create(3.14159265358979323846);
+        Vector128<double> e = Vector128.Create(2.7182818284590452354);
+        Vector128<ulong> randint;
+        Vector128<ulong> state;
+        Vector128<ulong> m;
+
+        // state[0]: m = 1 << 1
+        d = d * pi + e;
+        state = d.AsUInt64();
+        m = Vector128.Create(2ul);
+        state += m & Vector128.LessThan(state, m);
+        Vector128<ulong> k1 = Vector128.Create(ulong.MaxValue << 1);
+        for (int i = 0; i < 11; i++)
+            state = (((state << 31) ^ state) >> 45) ^ ((state & k1) << 18);
+        randint = state;
+
+        // state[1]: m = 1 << 6
+        d = d * pi + e;
+        state = d.AsUInt64();
+        m = Vector128.Create(64ul);
+        state += m & Vector128.LessThan(state, m);
+        Vector128<ulong> k6 = Vector128.Create(ulong.MaxValue << 6);
+        for (int i = 0; i < 11; i++)
+            state = (((state << 19) ^ state) >> 30) ^ ((state & k6) << 28);
+        randint ^= state;
+
+        // state[2]: m = 1 << 9
+        d = d * pi + e;
+        state = d.AsUInt64();
+        m = Vector128.Create(512ul);
+        state += m & Vector128.LessThan(state, m);
+        Vector128<ulong> k9 = Vector128.Create(ulong.MaxValue << 9);
+        for (int i = 0; i < 11; i++)
+            state = (((state << 24) ^ state) >> 48) ^ ((state & k9) << 7);
+        randint ^= state;
+
+        // state[3]: m = 1 << 17
+        d = d * pi + e;
+        state = d.AsUInt64();
+        m = Vector128.Create(1ul << 17);
+        state += m & Vector128.LessThan(state, m);
+        Vector128<ulong> k17 = Vector128.Create(ulong.MaxValue << 17);
+        for (int i = 0; i < 11; i++)
+            state = (((state << 21) ^ state) >> 39) ^ ((state & k17) << 8);
+        randint ^= state;
+
+        return randint;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<ulong> RandInt(Vector512<double> seed)
     {
+        if (!Vector512.IsHardwareAccelerated && Vector128.IsHardwareAccelerated)
+        {
+            Vector256<double> lo = seed.GetLower();
+            Vector256<double> hi = seed.GetUpper();
+            return Vector512.Create(
+                Vector256.Create(RandInt128(lo.GetLower()), RandInt128(lo.GetUpper())),
+                Vector256.Create(RandInt128(hi.GetLower()), RandInt128(hi.GetUpper()))
+            );
+        }
+
         Vector512<double> d = seed;
         int r = 0x11090601;
 
