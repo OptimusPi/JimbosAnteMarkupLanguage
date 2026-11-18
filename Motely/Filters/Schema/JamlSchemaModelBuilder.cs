@@ -249,16 +249,17 @@ internal sealed class JamlSchemaModelBuilder
     {
         if (blocks.ContainsKey(type))
             return;
-        // The card converter reads a mapping through its own type, which has no whole-card member.
-        var membersFrom = type == typeof(JamlStandardCardSlot) ? typeof(JamlStandardCardSlotMapping) : type;
         blocks[type] = null!;
-        var model = BuildType(type, membersFrom, [], sorted: true);
+        var model = BuildType(type, type, [], sorted: true);
         blocks[type] = model;
         blockOrder.Add(type);
     }
 
     private static JamlValueKind Classify(Type type)
     {
+        if (type == typeof(JamlStandardCardSlot))
+            return JamlValueKind.Card;
+
         var converter = JamlClauseBinding.Converters.FirstOrDefault(candidate => candidate.Accepts(type));
         if (converter is not null)
         {
@@ -266,7 +267,6 @@ internal sealed class JamlSchemaModelBuilder
             {
                 JamlClauseBinding.IntListConverter => JamlValueKind.Numbers,
                 JamlEventRolls.Converter => JamlValueKind.EventRolls,
-                JamlStandardCardSlotConverter => JamlValueKind.Card,
                 _ when converter.GetType().IsGenericType
                     && converter.GetType().GetGenericTypeDefinition() == typeof(JamlClauseBinding.ScalarOrSequenceConverter<>)
                     => JamlValueKind.Names,

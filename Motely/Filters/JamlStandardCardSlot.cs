@@ -10,6 +10,7 @@ namespace Motely.Filters;
 [YamlSerializable]
 public sealed class JamlStandardCardSlot
 {
+    [YamlIgnore]
     public MotelyStandardCard? Card { get; set; }
     public MotelyStandardcardRank? Rank { get; set; }
     public MotelyStandardcardSuit? Suit { get; set; }
@@ -18,46 +19,32 @@ public sealed class JamlStandardCardSlot
     public MotelyItemEdition? Edition { get; set; }
 }
 
-[YamlSerializable]
-internal sealed class JamlStandardCardSlotMapping
+internal sealed class JamlStandardCardSlotNodeDeserializer : INodeDeserializer
 {
-    public MotelyStandardcardRank? Rank { get; set; }
-    public MotelyStandardcardSuit? Suit { get; set; }
-    public MotelyItemEnhancement? Enhancement { get; set; }
-    public MotelyItemSeal? Seal { get; set; }
-    public MotelyItemEdition? Edition { get; set; }
-}
-
-internal sealed class JamlStandardCardSlotConverter : IYamlTypeConverter
-{
-    public bool Accepts(Type type) => type == typeof(JamlStandardCardSlot);
-
-    public object ReadYaml(IParser parser, Type type, ObjectDeserializer nested)
+    public bool Deserialize(
+        IParser reader,
+        Type expectedType,
+        Func<IParser, Type, object?> nestedObjectDeserializer,
+        out object? value,
+        ObjectDeserializer rootDeserializer)
     {
-        if (parser.Current is Scalar scalar)
+        if (expectedType != typeof(JamlStandardCardSlot) || !reader.Accept<Scalar>(out var scalar))
         {
-            parser.Consume<Scalar>();
-            if (IsCategoryAny(scalar))
-                return new JamlStandardCardSlot();
-            return new JamlStandardCardSlot
-            {
-                Card = JamlEnumName.Parse<MotelyStandardCard>(scalar.Value),
-            };
+            value = null;
+            return false;
         }
 
-        var mapped = (JamlStandardCardSlotMapping)nested(typeof(JamlStandardCardSlotMapping))!;
-        return new JamlStandardCardSlot
+        if (JamlClauseBinding.IsCategoryAny(scalar))
         {
-            Rank = mapped.Rank,
-            Suit = mapped.Suit,
-            Enhancement = mapped.Enhancement,
-            Seal = mapped.Seal,
-            Edition = mapped.Edition,
+            reader.MoveNext();
+            value = new JamlStandardCardSlot();
+            return true;
+        }
+
+        value = new JamlStandardCardSlot
+        {
+            Card = (MotelyStandardCard)nestedObjectDeserializer(reader, typeof(MotelyStandardCard))!,
         };
+        return true;
     }
-
-    public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer nested) =>
-        nested(value, type);
-
-    private static bool IsCategoryAny(Scalar scalar) => JamlClauseBinding.IsAnyWord(scalar.Value);
 }

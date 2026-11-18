@@ -220,13 +220,11 @@ public sealed class JamlSchemaTests
 
         foreach (var type in Model.Types)
         {
-            // The card converter binds a mapping through its own type; every other type binds as itself.
-            var boundAs = type.Type == typeof(JamlStandardCardSlot) ? typeof(JamlStandardCardSlotMapping) : type.Type;
             var forbidden = JamlConfigLoader.ClauseRules
                 .Where(rule => rule.Kind == JamlRuleKind.Forbidden && rule.AppliesTo(type.Type))
                 .Select(rule => rule.Member)
                 .ToHashSet();
-            var bound = JamlConfigLoader.BoundMembers(boundAs).Select(member => member.Name).ToList();
+            var bound = JamlConfigLoader.BoundMembers(type.Type).Select(member => member.Name).ToList();
             var expected = bound.Where(name => !forbidden.Contains(name)).Order(StringComparer.Ordinal).ToList();
             Assert.All(forbidden, name => Assert.Contains(name, bound));
 

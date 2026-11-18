@@ -18,42 +18,23 @@ public sealed class JamlEventRolls
 
         public object ReadYaml(IParser parser, Type type, ObjectDeserializer nested)
         {
-            if (parser.Current is SequenceStart)
-                return new JamlEventRolls { Rolls = ReadIntSequence(parser) };
-
-            if (parser.Current is Scalar scalar)
+            if (parser.Accept<Scalar>(out var scalar) && JamlClauseBinding.IsCategoryAny(scalar))
             {
-                parser.Consume<Scalar>();
-                if (IsEmpty(scalar))
-                    return new JamlEventRolls { Rolls = [] };
-                return new JamlEventRolls { Rolls = [ReadRoll(scalar)] };
+                parser.MoveNext();
+                return new JamlEventRolls();
             }
 
-            return new JamlEventRolls { Rolls = [] };
+            try
+            {
+                return new JamlEventRolls { Rolls = (int[]?)nested(typeof(int[])) ?? [] };
+            }
+            catch (YamlException ex) when (ex.Message.Contains("a number in this list", StringComparison.Ordinal))
+            {
+                throw new YamlException(ex.Start, ex.End, ex.Message.Replace("a number in this list", "a roll", StringComparison.Ordinal));
+            }
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer nested) =>
-            nested(value, type);
-
-        private static int[] ReadIntSequence(IParser parser)
-        {
-            parser.Consume<SequenceStart>();
-            var items = new List<int>();
-            while (!parser.TryConsume<SequenceEnd>(out _))
-                items.Add(ReadRoll(parser.Consume<Scalar>()));
-
-            return items.ToArray();
-        }
-
-        private static int ReadRoll(Scalar scalar)
-        {
-            if (!int.TryParse(scalar.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var roll))
-                throw new YamlException(scalar.Start, scalar.End, $"`{scalar.Value}` is not a roll: write a whole number, or a list of them, as in [1, 2].");
-            if (JamlConfigLoader.ListNumber.BrokenBy(roll))
-                throw new YamlException(scalar.Start, scalar.End, $"`{roll}` is out of range: a roll runs from 0 to {MotelyGlobals.MaxRollIndex}.");
-            return roll;
-        }
-
-        private static bool IsEmpty(Scalar scalar) => JamlClauseBinding.IsAnyWord(scalar.Value);
+            throw new NotSupportedException();
     }
 }

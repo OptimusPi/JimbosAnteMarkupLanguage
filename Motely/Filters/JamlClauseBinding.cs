@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
@@ -7,7 +6,7 @@ namespace Motely.Filters;
 /// <summary>JAML clause discriminators and scalar-or-list converters.</summary>
 internal static class JamlClauseBinding
 {
-    internal static IReadOnlyCollection<string> ClauseKeys => DiscriminatorKeys;
+    internal static IReadOnlyCollection<string> ClauseKeys => ClauseTypeByKey.Keys;
 
     internal static IEnumerable<IYamlTypeConverter> Converters =>
     [
@@ -27,10 +26,10 @@ internal static class JamlClauseBinding
         new ScalarOrSequenceConverter<MotelyPokerHand>(),
         new IntListConverter(),
         new JamlEventRolls.Converter(),
-        new JamlStandardCardSlotConverter(),
     ];
 
-    internal static readonly Dictionary<string, Type> ClauseTypeByKey = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly Dictionary<string, Type> ClauseTypeByKey =
+        new(StringComparer.OrdinalIgnoreCase)
     {
         ["joker"] = typeof(JokerClause),
         ["jokers"] = typeof(JokerClause),
@@ -86,53 +85,31 @@ internal static class JamlClauseBinding
         ["soulOrders"] = typeof(LegendarySoulOrderClause),
     };
 
-    private static readonly FrozenSet<string> DiscriminatorKeys =
-        ClauseTypeByKey.Keys.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-
     /// <summary>Scalar, empty, <c>any</c>, or sequence → array (Nat's JAML filter clauses).</summary>
     internal sealed class ScalarOrSequenceConverter<T> : IYamlTypeConverter
+        where T : struct, Enum
     {
-        private readonly Type _arrayType = typeof(T[]);
+        public bool Accepts(Type type) => type == typeof(T[]);
 
-        public bool Accepts(Type type) => type == _arrayType;
-
-        public object ReadYaml(IParser parser, Type type, ObjectDeserializer nested) =>
-            parser.Current switch
-            {
-                SequenceStart => ReadSequence(parser),
-                Scalar scalar when IsCategoryAny(scalar) => ConsumeAndReturn(parser, Array.Empty<T>()),
-                Scalar scalar when typeof(T) == typeof(int) => ConsumeAndReturn(
-                    parser,
-                    new[] { int.Parse(scalar.Value, System.Globalization.CultureInfo.InvariantCulture) }
-                ),
-                Scalar scalar => ConsumeAndReturn(
-                    parser,
-                    new[] { (T)JamlEnumName.Parse(typeof(T), scalar.Value) }
-                ),
-                _ => Array.Empty<T>(),
-            };
-
-        private static T[] ReadSequence(IParser parser)
+        public object ReadYaml(IParser parser, Type type, ObjectDeserializer nested)
         {
-            parser.Consume<SequenceStart>();
-            var items = new List<T>();
-            while (!parser.TryConsume<SequenceEnd>(out _))
+            if (parser.Accept<Scalar>(out var scalar) && IsCategoryAny(scalar))
             {
-                var scalar = parser.Consume<Scalar>();
-                items.Add((T)JamlEnumName.Parse(typeof(T), scalar.Value));
+                parser.MoveNext();
+                return Array.Empty<T>();
             }
 
+            if (!parser.TryConsume<SequenceStart>(out _))
+                return new[] { (T)nested(typeof(T))! };
+
+            var items = new List<T>();
+            while (!parser.TryConsume<SequenceEnd>(out _))
+                items.Add((T)nested(typeof(T))!);
             return items.ToArray();
         }
 
-        private static TResult ConsumeAndReturn<TResult>(IParser parser, TResult value)
-        {
-            parser.Consume<Scalar>();
-            return value;
-        }
-
         public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer nested) =>
-            nested(value, type);
+            throw new NotSupportedException();
     }
 
     /// <summary>
@@ -191,7 +168,7 @@ internal static class JamlClauseBinding
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer nested) =>
-            nested(value, type);
+            throw new NotSupportedException();
     }
 
     /// <summary>
@@ -211,7 +188,7 @@ internal static class JamlClauseBinding
         return false;
     }
 
-    private static bool IsCategoryAny(Scalar scalar) =>
+    internal static bool IsCategoryAny(Scalar scalar) =>
         scalar.Style is ScalarStyle.Plain or ScalarStyle.SingleQuoted or ScalarStyle.DoubleQuoted
         && IsAnyWord(scalar.Value);
 }

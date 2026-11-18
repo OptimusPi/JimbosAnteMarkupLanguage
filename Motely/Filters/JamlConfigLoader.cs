@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using YamlDotNet.Serialization.TypeInspectors;
+using YamlDotNet.Serialization.NodeDeserializers;
 
 namespace Motely.Filters;
 
@@ -12,15 +12,9 @@ public static partial class JamlConfigLoader
 {
     private static readonly INamingConvention Naming = CamelCaseNamingConvention.Instance;
 
-    private static readonly IDeserializer Deserializer = BuildDeserializer();
-
-    /// <summary>
-    /// The members the deserializer binds, under the names a filter writes: the static context's
-    /// own list is the C# property names, so it is read through the naming convention and the
-    /// YamlMember aliases the deserializer builder applies.
-    /// </summary>
-    private static readonly ITypeInspector Inspector = new YamlAttributesTypeInspector(
-        new NamingConventionTypeInspector(new JamlYamlContext().GetTypeInspector(), Naming));
+    private static readonly (IDeserializer Deserializer, ITypeInspector Inspector) Pipeline = BuildPipeline();
+    private static IDeserializer Deserializer => Pipeline.Deserializer;
+    private static ITypeInspector Inspector => Pipeline.Inspector;
 
     private static readonly ConcurrentDictionary<Type, IPropertyDescriptor[]> Members = new();
 
@@ -39,19 +33,20 @@ public static partial class JamlConfigLoader
     /// <summary>Reads <paramref name="text"/> as one <paramref name="type"/>, as the loader reads it inside a filter.</summary>
     internal static object? Bind(string text, Type type) => Deserializer.Deserialize(new JamlParser(text), type);
 
-    private static IDeserializer BuildDeserializer()
+    private static (IDeserializer, ITypeInspector) BuildPipeline()
     {
         var builder = new StaticDeserializerBuilder(new JamlYamlContext())
             .WithNamingConvention(Naming)
             .WithCaseInsensitivePropertyMatching()
             .WithDuplicateKeyChecking()
             .WithNodeDeserializer(new JamlEnumNodeDeserializer())
+            .WithNodeDeserializer(new JamlStandardCardSlotNodeDeserializer(), s => s.After<NullNodeDeserializer>())
             .WithNodeDeserializer(new ClauseKeyDeserializer());
         foreach (var (key, type) in JamlClauseBinding.ClauseTypeByKey)
             builder = builder.WithTagMapping("!" + key, type);
-        return JamlClauseBinding.Converters
-            .Aggregate(builder, (current, converter) => current.WithTypeConverter(converter))
-            .Build();
+        foreach (var converter in JamlClauseBinding.Converters)
+            builder = builder.WithTypeConverter(converter);
+        return (builder.Build(), builder.BuildTypeInspector());
     }
 
     /// <summary>
@@ -66,6 +61,9 @@ public static partial class JamlConfigLoader
                 ?? throw new InvalidOperationException("JAML: the document is empty.");
             config.Id ??= "";
             config.Seeds ??= [];
+            config.Must ??= [];
+            config.Should ??= [];
+            config.MustNot ??= [];
             Enforce(NoNullSeed, config);
             CheckBounds(config.Must);
             CheckBounds(config.Should);
