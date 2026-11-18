@@ -1,0 +1,75 @@
+# --- .NET build artifacts ---
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+
+# --- JetBrains Rider / ReSharper ---
+.idea/
+*.DotSettings.user
+_ReSharper.*/
+
+# --- VS Code per-user state (keep shared .vscode/*.json tracked) ---
+.vscode/*.user.*
+
+# --- NuGet ---
+*.nupkg
+packages/
+
+# --- Test results & coverage ---
+TestResults/
+*.trx
+coverage/
+*.coverage
+*.coveragexml
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log*
+# A root or user .npmrc can hold a token; the project .npmrc files only map @rewaffle and are tracked.
+.npmrc
+!Motely.Wasm/.npmrc
+!Motely.Web/.npmrc
+# Vite build output (npm run build).
+/Motely.Web/dist/
+
+# --- Logs & temp ---
+*.log
+*.tmp
+*.bak
+*~
+
+# --- OS noise ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Local agent / IDE state (shared skills, settings.json and hooks stay tracked) ---
+/.claude/*
+!/.claude/skills/
+!/.claude/settings.json
+!/.claude/hooks/
+
+# --- Motely runtime outputs ---
+/Seeds/
+.seeds/
+.motely-data/
+/analysis.json
+nuget.config.local
+
+# Personal MCP server config (roslyn-lens etc.) — not a shared dep
+.mcp.json
+.mcp.local.json
+.playwright-mcp/
+
+# Agent/teamwork scratch and local data
+/.agents/
+/scola.csv
+
+# Source snapshots and CLI output redirected into the tree by accident.
+/*.zip
+/Filters/*.csv
