@@ -19,9 +19,8 @@ public enum MotelyAesthetic
     Gross,
     Funny,
     Balatro,
-    Nsfw,
     /// <summary>Every 8-digit window of π (O plays 0, which the seed alphabet lacks).</summary>
-    Pi,
+    Pi = 11,
     /// <summary>180° ambigrams: the seed reads the same upside down (SWIMS, MOW, NOON).</summary>
     Spin,
     /// <summary>Each character is the sum of the two before it, mod the alphabet.</summary>
@@ -32,7 +31,7 @@ public enum MotelyAesthetic
 /// Generation and counting of <see cref="MotelyAesthetic"/> seed spaces over Motely's alphabet
 /// and length rules. Palindrome/Psychosis/Mirror/Repeater/Runs/Step live here; keyword-backed aesthetics
 /// (<see cref="MotelyAesthetic.Gross"/>, <see cref="MotelyAesthetic.Funny"/>,
-/// <see cref="MotelyAesthetic.Balatro"/>, <see cref="MotelyAesthetic.Nsfw"/>) delegate to
+/// <see cref="MotelyAesthetic.Balatro"/>) delegate to
 /// <see cref="MotelySeedKeywordSequences"/>.
 /// <para>
 /// <b>Padding alphabet:</b> free / generated positions use <paramref name="paddingAlphabet"/> when
@@ -68,8 +67,7 @@ public static class MotelyAesthetics
             MotelyAesthetic.Gross
                 or MotelyAesthetic.Funny
                 or MotelyAesthetic.Balatro
-                or MotelyAesthetic.Leet
-                or MotelyAesthetic.Nsfw => MotelySeedKeywordSequences.GetAestheticSeedCount(
+                or MotelyAesthetic.Leet => MotelySeedKeywordSequences.GetAestheticSeedCount(
                 aesthetic,
                 paddingAlphabet
             ),
@@ -95,8 +93,7 @@ public static class MotelyAesthetics
             MotelyAesthetic.Gross
                 or MotelyAesthetic.Funny
                 or MotelyAesthetic.Balatro
-                or MotelyAesthetic.Leet
-                or MotelyAesthetic.Nsfw => MotelySeedKeywordSequences.EnumerateAestheticSeeds(
+                or MotelyAesthetic.Leet => MotelySeedKeywordSequences.EnumerateAestheticSeeds(
                 aesthetic,
                 paddingAlphabet
             ),

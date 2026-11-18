@@ -241,7 +241,7 @@ public static class CliSearchMode
         }
         else if (aestheticAll)
         {
-            // --aesthetic all: concat every family (palindrome → … → nsfw). Same pad law as
+            // --aesthetic all: concat every family (palindrome → … → fibonacci). Same pad law as
             // single --aesthetic: full alphabet unless --padding. (Default --collect without
             // --aesthetic still uses digit pad + sequential fallback in Program.)
             updated = updated.WithAllAesthetics(

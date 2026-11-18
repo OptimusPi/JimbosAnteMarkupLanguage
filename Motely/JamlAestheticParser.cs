@@ -17,7 +17,6 @@ public static class MotelyAestheticParser
         ("balatro", MotelyAesthetic.Balatro),
         ("gross", MotelyAesthetic.Gross),
         ("funny", MotelyAesthetic.Funny),
-        ("nsfw", MotelyAesthetic.Nsfw),
         ("mirror", MotelyAesthetic.Mirror),
         ("repeater", MotelyAesthetic.Repeater),
         ("runs", MotelyAesthetic.Runs),

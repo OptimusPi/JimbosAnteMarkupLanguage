@@ -194,8 +194,7 @@ public sealed class CoverageUtilityTests
             MotelySeedKeywordSequences.GrossKeywordAestheticSeedCount,
             MotelySeedKeywordSequences.FunnyKeywordAestheticSeedCount,
             MotelySeedKeywordSequences.BalatroKeywordAestheticSeedCount,
-            MotelySeedKeywordSequences.LeetKeywordAestheticSeedCount,
-            MotelySeedKeywordSequences.NsfwKeywordAestheticSeedCount
+            MotelySeedKeywordSequences.LeetKeywordAestheticSeedCount
         );
         var live = string.Join(
             " ",
@@ -208,8 +207,7 @@ public sealed class CoverageUtilityTests
             MotelyGlobals.GetPaddedSeedCountForKeywordsLong(
                 MotelySeedKeywordSequences.BalatroKeywords
             ),
-            MotelyGlobals.GetPaddedSeedCountForKeywordsLong(MotelySeedKeywordSequences.LeetKeywords),
-            MotelyGlobals.GetPaddedSeedCountForKeywordsLong(MotelySeedKeywordSequences.NsfwKeywords)
+            MotelyGlobals.GetPaddedSeedCountForKeywordsLong(MotelySeedKeywordSequences.LeetKeywords)
         );
         Assert.Equal(baked, live);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -222,7 +220,6 @@ public sealed class CoverageUtilityTests
                 MotelySeedKeywordSequences.GrossKeywords,
                 MotelySeedKeywordSequences.FunnyKeywords,
                 MotelySeedKeywordSequences.BalatroKeywords,
-                MotelySeedKeywordSequences.NsfwKeywords,
             }
         )
         {
