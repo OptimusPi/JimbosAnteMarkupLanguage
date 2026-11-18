@@ -28,6 +28,14 @@ public sealed class JamlAdversarialTests
     [InlineData("name: a\0b\n")]
     public void IsALoadError_NotACrash(string yaml) => Refused(yaml);
 
+    [Theory]
+    [InlineData("must:\n  - luckyMoney: []\n", "at least one roll")]
+    [InlineData("must:\n  - luckyMoney:\n", "at least one roll")]
+    [InlineData("must:\n  - glassDestroy: []\n", "at least one roll")]
+    [InlineData("must:\n  - luckyMoney: any\n", "is not a roll")]
+    [InlineData("must:\n  - luckyMoney: ~\n", "is not a roll")]
+    public void AnEventClauseWithNoRoll_IsRefused(string yaml, string fragment) => RefusedWith(yaml, fragment);
+
     private static void RefusedWith(string yaml, string fragment)
     {
         Assert.False(JamlConfig.TryLoad(yaml, out _, out var error), "the filter loaded");
