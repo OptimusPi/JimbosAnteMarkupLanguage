@@ -122,6 +122,10 @@ public enum MotelyJokerStreamFlags
 
     ExcludeJokerType = 1 << 3,
 
+    ExcludeCommon = 1 << 4,
+    ExcludeUncommon = 1 << 5,
+    ExcludeRare = 1 << 6,
+
     Default = 0,
 }
 

@@ -46,12 +46,6 @@ public struct JokerFilterDesc(JokerClause clause)
 
     public JokerFilter CreateFilter(ref MotelyFilterCreationContext ctx)
     {
-        foreach (var ante in _clause.Antes)
-        {
-            ctx.CacheShopStream(ante);
-            ctx.CacheBoosterPackStream(ante);
-        }
-
         // Pre-calculate target item types to avoid bitwise logic in the hot loop
         var jokers = _clause.Jokers;
         var targetTypes = new MotelyItemType[jokers.Length];
@@ -74,27 +68,31 @@ public struct JokerFilterDesc(JokerClause clause)
         var shopIndices = sources.ShopItems;
         var boosterIndices = sources.BoosterPacks;
 
-        // Only shop slots and buffoon packs are walked in SIMD here; everything else the
-        // clause can name is counted per seed by the scalar law.
-        bool confirmPerSeed =
-            UsesLegendaryPath(_clause)
-            || sources.HasSpawnSources
-            || sources.HasRawShopJokerSources;
-
-        Debug.Assert(
-            confirmPerSeed || shopIndices.Length > 0 || boosterIndices.Length > 0,
-            "Joker clause should have non-empty default sources."
+        var jokerFlags = SimdPackSupport.GetJokerStreamFlags(
+            _clause.Edition,
+            _clause.Stickers,
+            SimdPackSupport.GetRarityExclusions(targetTypes)
+        );
+        var fixedFlags = SimdPackSupport.GetFixedJokerStreamFlags(
+            _clause.Edition,
+            _clause.Stickers
         );
 
-        int maxShopItem = 0;
-        foreach (var idx in shopIndices)
-            if (idx > maxShopItem)
-                maxShopItem = idx;
+        foreach (var ante in _clause.Antes)
+        {
+            if (shopIndices.Length > 0)
+                ctx.CacheShopStream(ante, SimdPackSupport.JokerOnlyShopFlags, jokerFlags);
+            if (boosterIndices.Length > 0)
+                ctx.CacheBoosterPackStream(ante);
+            SimdPackSupport.CacheSpecialtyJokerStreams(ref ctx, ante, sources, jokerFlags, fixedFlags);
+        }
 
-        int maxBoosterPack = 0;
-        foreach (var idx in boosterIndices)
-            if (idx > maxBoosterPack)
-                maxBoosterPack = idx;
+        // Only the legendary / wildcard path requires per-seed scalar confirmation here;
+        // shop slots, buffoon packs, raw shop joker streams, and spawn streams all run in SIMD.
+        bool confirmPerSeed = UsesLegendaryPath(_clause);
+
+        int maxShopItem = SimdPackSupport.MaxSlot(shopIndices);
+        int maxBoosterPack = SimdPackSupport.MaxSlot(boosterIndices);
 
         return new JokerFilter(
             _clause,
@@ -105,11 +103,13 @@ public struct JokerFilterDesc(JokerClause clause)
             maxBoosterPack,
             sources.RequireMegaPack,
             confirmPerSeed,
+            jokerFlags,
+            fixedFlags,
             ctx.Deck.GetRunState(_clause.With.Vouchers)
         );
     }
 
-    private static bool UsesLegendaryPath(JokerClause clause)
+    internal static bool UsesLegendaryPath(JokerClause clause)
     {
         if ((clause.Jokers.Length == 0))
             return true;
@@ -136,6 +136,8 @@ public struct JokerFilterDesc(JokerClause clause)
         int maxBoosterPack,
         bool requireMegaPack,
         bool confirmPerSeed,
+        MotelyJokerStreamFlags jokerFlags,
+        MotelyJokerFixedRarityStreamFlags fixedFlags,
         MotelyRunState shopState
     ) : IMotelySeedFilter
     {
@@ -150,6 +152,8 @@ public struct JokerFilterDesc(JokerClause clause)
         private readonly int _maxBoosterPack = maxBoosterPack;
         private readonly bool _requireMegaPack = requireMegaPack;
         private readonly bool _confirmPerSeed = confirmPerSeed;
+        private readonly MotelyJokerStreamFlags _jokerFlags = jokerFlags;
+        private readonly MotelyJokerFixedRarityStreamFlags _fixedFlags = fixedFlags;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public VectorMask Filter(ref MotelyVectorSearchContext ctx)
@@ -166,6 +170,8 @@ public struct JokerFilterDesc(JokerClause clause)
                         ClauseScoring.ClauseMeetsMinForFilter(ref singleCtx, clause) ? 1 : 0
                 );
             }
+
+            var sources = _clause.Sources ?? DefaultSources;
 
             Vector256<int> matchCounts = Vector256<int>.Zero;
             // Lanes with an in-pack duplicate: SIMD can't resample, so the scalar confirm decides.
@@ -191,10 +197,28 @@ public struct JokerFilterDesc(JokerClause clause)
 
             foreach (var ante in _clause.Antes)
             {
+                SimdPackSupport.WalkSpecialtyJokerSources(
+                    ref ctx,
+                    ante,
+                    sources,
+                    _targetTypes,
+                    wildcardRarity: null,
+                    _clause.Edition,
+                    _clause.Stickers,
+                    _jokerFlags,
+                    _fixedFlags,
+                    ref matchCounts
+                );
+
                 // ── Shop items SIMD ──
                 if (shopIndices.Length > 0)
                 {
-                    var shopStream = ctx.CreateShopItemStream(ante, _shopState);
+                    var shopStream = ctx.CreateShopItemStream(
+                        ante,
+                        _shopState,
+                        SimdPackSupport.JokerOnlyShopFlags,
+                        _jokerFlags
+                    );
 
                     for (int slot = 0; slot <= _maxShopItem; slot++)
                     {
@@ -232,7 +256,7 @@ public struct JokerFilterDesc(JokerClause clause)
                 if (boosterIndices.Length > 0)
                 {
                     var packStream = ctx.CreateBoosterPackStream(ante);
-                    var jokerStream = ctx.CreateBuffoonPackJokerStream(ante);
+                    var jokerStream = ctx.CreateBuffoonPackJokerStream(ante, _jokerFlags);
 
                     for (int p = 0; p <= _maxBoosterPack; p++)
                     {

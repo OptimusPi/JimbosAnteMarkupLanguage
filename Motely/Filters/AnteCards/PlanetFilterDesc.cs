@@ -43,8 +43,10 @@ public struct PlanetCardFilterDesc(PlanetCardClause clause)
 
         foreach (var ante in _clause.Antes)
         {
-            ctx.CacheShopStream(ante);
-            ctx.CacheBoosterPackStream(ante);
+            if (sources.ShopItems.Length > 0)
+                ctx.CacheShopStream(ante, SimdPackSupport.PlanetOnlyShopFlags);
+            if (sources.BoosterPacks.Length > 0)
+                ctx.CacheBoosterPackStream(ante);
         }
 
         int maxShopItem = 0;
@@ -117,7 +119,11 @@ public struct PlanetCardFilterDesc(PlanetCardClause clause)
                 // ── Shop items SIMD ──
                 if (shopIndices.Length > 0)
                 {
-                    var shopStream = ctx.CreateShopItemStream(ante, _shopState);
+                    var shopStream = ctx.CreateShopItemStream(
+                        ante,
+                        _shopState,
+                        SimdPackSupport.PlanetOnlyShopFlags
+                    );
 
                     for (int slot = 0; slot <= maxShopItem; slot++)
                     {

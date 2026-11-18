@@ -144,15 +144,21 @@ unsafe partial struct MotelyVectorSearchContext
                 )
                     ? CreatePrngStream(rentalSource + ante, isCached)
                     : MotelyVectorPrngStream.Invalid,
-            CommonJokerPrngStream = !flags.HasFlag(MotelyJokerStreamFlags.ExcludeJokerType)
-                ? CreatePrngStream(MotelyPrngKeys.JokerCommon + streamSuffix)
-                : MotelyVectorPrngStream.Invalid,
-            UncommonJokerPrngStream = !flags.HasFlag(MotelyJokerStreamFlags.ExcludeJokerType)
-                ? CreatePrngStream(MotelyPrngKeys.JokerUncommon + streamSuffix)
-                : MotelyVectorPrngStream.Invalid,
-            RareJokerPrngStream = !flags.HasFlag(MotelyJokerStreamFlags.ExcludeJokerType)
-                ? CreatePrngStream(MotelyPrngKeys.JokerRare + streamSuffix)
-                : MotelyVectorPrngStream.Invalid,
+            CommonJokerPrngStream =
+                !flags.HasFlag(MotelyJokerStreamFlags.ExcludeJokerType)
+                && !flags.HasFlag(MotelyJokerStreamFlags.ExcludeCommon)
+                    ? CreatePrngStream(MotelyPrngKeys.JokerCommon + streamSuffix, isCached)
+                    : MotelyVectorPrngStream.Invalid,
+            UncommonJokerPrngStream =
+                !flags.HasFlag(MotelyJokerStreamFlags.ExcludeJokerType)
+                && !flags.HasFlag(MotelyJokerStreamFlags.ExcludeUncommon)
+                    ? CreatePrngStream(MotelyPrngKeys.JokerUncommon + streamSuffix, isCached)
+                    : MotelyVectorPrngStream.Invalid,
+            RareJokerPrngStream =
+                !flags.HasFlag(MotelyJokerStreamFlags.ExcludeJokerType)
+                && !flags.HasFlag(MotelyJokerStreamFlags.ExcludeRare)
+                    ? CreatePrngStream(MotelyPrngKeys.JokerRare + streamSuffix, isCached)
+                    : MotelyVectorPrngStream.Invalid,
         };
     }
 
@@ -547,35 +553,46 @@ unsafe partial struct MotelyVectorSearchContext
                 ~rareMask & Vector512.GreaterThan(rarityPoll, Vector512.Create(0.7)) & mask;
             Vector512<double> commonMask = ~rareMask & ~uncommonMask & mask;
 
-            Vector256<int> rareJokers = GetNextJoker<MotelyJokerRare>(
-                ref stream.RareJokerPrngStream,
-                MotelyJokerRarity.Rare,
-                rareMask
-            );
+            Vector256<int> excluded = Vector256.Create((int)MotelyItemType.JokerExcludedByStream);
+            Vector256<int> jokerCat = Vector256.Create((int)MotelyItemTypeCategory.Joker);
 
-            Vector256<int> uncommonJokers = GetNextJoker<MotelyJokerUncommon>(
-                ref stream.UncommonJokerPrngStream,
-                MotelyJokerRarity.Uncommon,
-                uncommonMask
-            );
+            Vector256<int> rareJokers = !stream.RareJokerPrngStream.IsInvalid
+                ? jokerCat
+                    | GetNextJoker<MotelyJokerRare>(
+                        ref stream.RareJokerPrngStream,
+                        MotelyJokerRarity.Rare,
+                        rareMask
+                    )
+                : excluded;
 
-            Vector256<int> commonJokers = GetNextJoker<MotelyJokerCommon>(
-                ref stream.CommonJokerPrngStream,
-                MotelyJokerRarity.Common,
-                commonMask
-            );
+            Vector256<int> uncommonJokers = !stream.UncommonJokerPrngStream.IsInvalid
+                ? jokerCat
+                    | GetNextJoker<MotelyJokerUncommon>(
+                        ref stream.UncommonJokerPrngStream,
+                        MotelyJokerRarity.Uncommon,
+                        uncommonMask
+                    )
+                : excluded;
+
+            Vector256<int> commonJokers = !stream.CommonJokerPrngStream.IsInvalid
+                ? jokerCat
+                    | GetNextJoker<MotelyJokerCommon>(
+                        ref stream.CommonJokerPrngStream,
+                        MotelyJokerRarity.Common,
+                        commonMask
+                    )
+                : excluded;
 
             jokers = new(
-                Vector256.Create((int)MotelyItemTypeCategory.Joker)
-                    | Vector256.ConditionalSelect(
-                        MotelyVectorUtils.ShrinkDoubleMaskToInt(rareMask),
-                        rareJokers,
-                        Vector256.ConditionalSelect(
-                            MotelyVectorUtils.ShrinkDoubleMaskToInt(uncommonMask),
-                            uncommonJokers,
-                            commonJokers
-                        )
+                Vector256.ConditionalSelect(
+                    MotelyVectorUtils.ShrinkDoubleMaskToInt(rareMask),
+                    rareJokers,
+                    Vector256.ConditionalSelect(
+                        MotelyVectorUtils.ShrinkDoubleMaskToInt(uncommonMask),
+                        uncommonJokers,
+                        commonJokers
                     )
+                )
             );
         }
         else

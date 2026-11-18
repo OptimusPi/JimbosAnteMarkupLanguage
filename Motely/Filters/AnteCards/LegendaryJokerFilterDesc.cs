@@ -106,8 +106,13 @@ public struct LegendaryJokerFilterDesc(LegendaryJokerClause clause)
             },
         };
 
+        ctx.CachePseudoHash(MotelyPrngKeys.JokerLegendary, force: true);
         foreach (var ante in normalizedClause.Antes)
+        {
             ctx.CacheBoosterPackStream(ante, force: true);
+            ctx.CacheArcanaPackTarotStream(ante, soulOnly: true, force: true);
+            ctx.CacheSpectralPackSpectralStream(ante, soulOnly: true, force: true);
+        }
 
         // Edition prefilter applies for any Min: keep lanes that see the edition on the soul
         // stream somewhere (over-permissive for Min>1; scalar confirm enforces count).
@@ -137,10 +142,6 @@ public struct LegendaryJokerFilterDesc(LegendaryJokerClause clause)
 
             // Pure SIMD additional-filter link only. Never SearchIndividualSeeds here —
             // pack/Soul/face exact law runs last in JamlShouldScoreDesc must re-eval.
-            //
-            // Stage 1: soul edition stream (when edition: is set). Negative ~0.3% — rejects almost
-            // every lane before score. No edition → all valid lanes; scoring does the full walk.
-            // Do not prefilter soul face before packs (order-dependent; see LegendarySoulMatcher).
             uint laneMask = 0;
             for (int lane = 0; lane < MotelyGlobals.MaxVectorWidth; lane++)
             {
@@ -148,10 +149,15 @@ public struct LegendaryJokerFilterDesc(LegendaryJokerClause clause)
                     laneMask |= 1u << lane;
             }
 
-            if (_clause.Edition.HasValue)
-                return LegendarySoulEditionPrefilter.Apply(ref ctx, _clause, laneMask);
+            VectorMask candidates = _clause.Edition.HasValue
+                ? LegendarySoulEditionPrefilter.Apply(ref ctx, _clause, laneMask)
+                : new VectorMask(laneMask);
 
-            return new VectorMask(laneMask);
+            return LegendarySoulEditionPrefilter.ApplySoulAndFacePrefilter(
+                ref ctx,
+                _clause,
+                candidates
+            );
         }
     }
 }

@@ -219,6 +219,7 @@ public static class MotelySearchBuilder
                 .Must.Where(ClauseScoring.CanChainInSimd)
                 .Select(c => (clause: c, negate: false))
                 .Concat(simdMustNot.Select(c => (clause: c, negate: true)))
+                .OrderBy(static entry => EstimateSimdCost(entry.clause))
         )
         {
             var desc = clause.CreateFilterDesc();
@@ -240,5 +241,70 @@ public static class MotelySearchBuilder
         }
 
         return settings;
+    }
+
+    internal static int EstimateSimdCost(MotelyClause clause) =>
+        clause switch
+        {
+            // 1. Cheap 1-stream SIMD features (tags, bosses, vouchers, packs, events)
+            BossClause c => 10 + c.Antes.Length,
+            TagClause c => 15 + c.Antes.Length * (SimdPackSupport.MaxSlot(c.Rolls) + 1),
+            VoucherClause c => 20 + c.Antes.Length * (SimdPackSupport.MaxSlot(c.Rolls) + 1),
+            BoosterPackClause c => 25 + c.Antes.Length * (SimdPackSupport.MaxSlot(c.Rolls) + 1),
+            EventClause c => 30 + SimdPackSupport.MaxSlot(c.Rolls) + 1,
+            ErraticRankClause or ErraticSuitClause => 40,
+
+            // 2. Pure SIMD Soul / Joker4 prefilters (high rejection per roll)
+            LegendarySoulOrderClause c => 45 + c.Entries.Length * 4,
+            LegendaryJokerClause c => (c.Edition.HasValue ? 50 : 60) + c.Antes.Length * 4,
+
+            // 3. Rarity-masked shop / pack / specialty joker SIMD filters
+            RareJokerClause c => 100 + EstimateJokerSourceCost(c.Antes.Length, c.Sources),
+            UncommonJokerClause c => 110 + EstimateJokerSourceCost(c.Antes.Length, c.Sources),
+            CommonJokerClause c => 120 + EstimateJokerSourceCost(c.Antes.Length, c.Sources),
+            JokerClause c => JokerFilterDesc.UsesLegendaryPath(c)
+                ? 10_000 + c.Antes.Length * 100
+                : 130 + EstimateJokerSourceCost(c.Antes.Length, c.Sources),
+
+            // 4. Consumable shop / pack SIMD filters (unless scalar-confirm sources are enabled)
+            PlanetCardClause c => 200 + c.Antes.Length * EstimateCardSourceCost(c.Sources?.ShopItems, c.Sources?.BoosterPacks),
+            TarotCardClause c => (c.Sources is { CharmTag: true } or { TagPacks.Length: > 0 })
+                ? 10_000 + c.Antes.Length * 100
+                : 210 + c.Antes.Length * EstimateCardSourceCost(c.Sources?.ShopItems, c.Sources?.BoosterPacks),
+            SpectralCardClause c => (SpecialSpectralCardFilterDesc.Handles(c)
+                || c.Sources is { RequireMegaPack: true } or { EtherealTag: true } or { OmenGlobe: true })
+                ? 10_000 + c.Antes.Length * 100
+                : 220 + c.Antes.Length * EstimateCardSourceCost(c.Sources?.ShopItems, c.Sources?.BoosterPacks),
+
+            // 5. Logic clauses: aggregate child costs
+            LogicClause c => c.Clauses.Sum(EstimateSimdCost),
+
+            // 6. Scalar-confirm (SearchIndividualSeeds) clauses last
+            _ => 10_000,
+        };
+
+    private static int EstimateJokerSourceCost(int anteCount, JokerSourceConfig? sources)
+    {
+        var s = sources ?? JokerFilterDesc.DefaultSources;
+        int perAnte =
+            (s.ShopItems.Length > 0 ? (SimdPackSupport.MaxSlot(s.ShopItems) + 1) * 2 : 0)
+            + (s.BoosterPacks.Length > 0 ? (SimdPackSupport.MaxSlot(s.BoosterPacks) + 1) * 6 : 0)
+            + s.CommonShopJokers.Length
+            + s.UncommonShopJokers.Length
+            + s.RareShopJokers.Length
+            + s.AllShopJokers.Length
+            + s.Judgement.Length
+            + s.Wraith.Length
+            + s.RiffRaff.Length
+            + s.RareTag.Length
+            + s.UncommonTag.Length;
+        return anteCount * Math.Max(1, perAnte);
+    }
+
+    private static int EstimateCardSourceCost(int[]? shopItems, int[]? boosterPacks)
+    {
+        int shop = shopItems is { Length: > 0 } ? (SimdPackSupport.MaxSlot(shopItems) + 1) * 2 : 16;
+        int packs = boosterPacks is { Length: > 0 } ? (SimdPackSupport.MaxSlot(boosterPacks) + 1) * 8 : 0;
+        return shop + packs;
     }
 }

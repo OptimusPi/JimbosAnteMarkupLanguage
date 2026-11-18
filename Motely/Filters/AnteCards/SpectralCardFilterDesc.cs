@@ -74,7 +74,7 @@ public struct SpectralCardFilterDesc(SpectralCardClause clause)
         foreach (var ante in _clause.Antes)
         {
             if (sources.ShopItems.Length > 0)
-                ctx.CacheShopStream(ante);
+                ctx.CacheShopStream(ante, SimdPackSupport.SpectralOnlyShopFlags);
             if (sources.BoosterPacks.Length > 0)
                 ctx.CacheBoosterPackStream(ante);
         }
@@ -182,7 +182,11 @@ public struct SpectralCardFilterDesc(SpectralCardClause clause)
                 // other deck these slots can never match and the stream is not worth walking.
                 if (shopIndices.Length > 0 && ctx.Deck == MotelyDeck.Ghost)
                 {
-                    var shopStream = ctx.CreateShopItemStream(ante, _shopState);
+                    var shopStream = ctx.CreateShopItemStream(
+                        ante,
+                        _shopState,
+                        SimdPackSupport.SpectralOnlyShopFlags
+                    );
 
                     for (int slot = 0; slot <= maxShopItem; slot++)
                     {

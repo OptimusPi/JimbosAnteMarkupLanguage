@@ -37,18 +37,23 @@ public struct UncommonJokerFilterDesc(UncommonJokerClause clause)
     public readonly UncommonJokerFilter CreateFilter(ref MotelyFilterCreationContext ctx)
     {
         var sources = _clause.Sources ?? DefaultSources;
+        var jokerFlags = SimdPackSupport.GetJokerStreamFlags(
+            _clause.Edition,
+            _clause.Stickers,
+            MotelyJokerStreamFlags.ExcludeCommon | MotelyJokerStreamFlags.ExcludeRare
+        );
+        var fixedFlags = SimdPackSupport.GetFixedJokerStreamFlags(
+            _clause.Edition,
+            _clause.Stickers
+        );
+
         foreach (var ante in _clause.Antes)
         {
-            ctx.CacheShopStream(ante);
-            ctx.CacheBoosterPackStream(ante);
-            if (sources.CommonShopJokers.Length > 0)
-                ctx.CacheCommonShopJokerStream(ante);
-            if (sources.UncommonShopJokers.Length > 0)
-                ctx.CacheUncommonShopJokerStream(ante);
-            if (sources.RareShopJokers.Length > 0)
-                ctx.CacheRareShopJokerStream(ante);
-            if (sources.AllShopJokers.Length > 0)
-                ctx.CacheShopJokerStream(ante);
+            if (sources.ShopItems.Length > 0)
+                ctx.CacheShopStream(ante, SimdPackSupport.JokerOnlyShopFlags, jokerFlags);
+            if (sources.BoosterPacks.Length > 0)
+                ctx.CacheBoosterPackStream(ante);
+            SimdPackSupport.CacheSpecialtyJokerStreams(ref ctx, ante, sources, jokerFlags, fixedFlags);
         }
 
         // Pre-calculate target item types to avoid bitwise logic in the hot loop
@@ -68,65 +73,22 @@ public struct UncommonJokerFilterDesc(UncommonJokerClause clause)
             }
         }
 
-        // Extract source indices from config
         var shopIndices = sources.ShopItems;
         var boosterIndices = sources.BoosterPacks;
-        var commonShopJokerIndices = sources.CommonShopJokers;
-        var uncommonShopJokerIndices = sources.UncommonShopJokers;
-        var rareShopJokerIndices = sources.RareShopJokers;
-        var allShopJokerIndices = sources.AllShopJokers;
 
-        // This desc walks the four raw shop joker streams natively; the spawn streams
-        // (judgement/wraith/riffRaff/rareTag/uncommonTag) are counted per seed by the scalar law.
-        bool confirmPerSeed = sources.HasSpawnSources;
-
-        int maxShopItem = 0;
-        foreach (var idx in shopIndices)
-            if (idx > maxShopItem)
-                maxShopItem = idx;
-
-        int maxBoosterPack = 0;
-        foreach (var idx in boosterIndices)
-            if (idx > maxBoosterPack)
-                maxBoosterPack = idx;
-
-        int maxCommonShopJoker = 0;
-        foreach (var idx in commonShopJokerIndices)
-            if (idx > maxCommonShopJoker)
-                maxCommonShopJoker = idx;
-
-        int maxUncommonShopJoker = 0;
-        foreach (var idx in uncommonShopJokerIndices)
-            if (idx > maxUncommonShopJoker)
-                maxUncommonShopJoker = idx;
-
-        int maxRareShopJoker = 0;
-        foreach (var idx in rareShopJokerIndices)
-            if (idx > maxRareShopJoker)
-                maxRareShopJoker = idx;
-
-        int maxAllShopJoker = 0;
-        foreach (var idx in allShopJokerIndices)
-            if (idx > maxAllShopJoker)
-                maxAllShopJoker = idx;
+        int maxShopItem = SimdPackSupport.MaxSlot(shopIndices);
+        int maxBoosterPack = SimdPackSupport.MaxSlot(boosterIndices);
 
         return new UncommonJokerFilter(
             _clause,
             targetTypes,
             [.. shopIndices],
             [.. boosterIndices],
-            [.. commonShopJokerIndices],
-            [.. uncommonShopJokerIndices],
-            [.. rareShopJokerIndices],
-            [.. allShopJokerIndices],
             maxShopItem,
             maxBoosterPack,
-            maxCommonShopJoker,
-            maxUncommonShopJoker,
-            maxRareShopJoker,
-            maxAllShopJoker,
             sources.RequireMegaPack,
-            confirmPerSeed,
+            jokerFlags,
+            fixedFlags,
             ctx.Deck.GetRunState(_clause.With.Vouchers)
         );
     }
@@ -136,18 +98,11 @@ public struct UncommonJokerFilterDesc(UncommonJokerClause clause)
         MotelyItemType[] targetTypes,
         int[] shopIndices,
         int[] boosterIndices,
-        int[] commonShopJokerIndices,
-        int[] uncommonShopJokerIndices,
-        int[] rareShopJokerIndices,
-        int[] allShopJokerIndices,
         int maxShopItem,
         int maxBoosterPack,
-        int maxCommonShopJoker,
-        int maxUncommonShopJoker,
-        int maxRareShopJoker,
-        int maxAllShopJoker,
         bool requireMegaPack,
-        bool confirmPerSeed,
+        MotelyJokerStreamFlags jokerFlags,
+        MotelyJokerFixedRarityStreamFlags fixedFlags,
         MotelyRunState shopState
     ) : IMotelySeedFilter
     {
@@ -158,18 +113,11 @@ public struct UncommonJokerFilterDesc(UncommonJokerClause clause)
         private readonly MotelyItemType[] _targetTypes = targetTypes;
         private readonly int[] _shopIndices = shopIndices;
         private readonly int[] _boosterIndices = boosterIndices;
-        private readonly int[] _commonShopJokerIndices = commonShopJokerIndices;
-        private readonly int[] _uncommonShopJokerIndices = uncommonShopJokerIndices;
-        private readonly int[] _rareShopJokerIndices = rareShopJokerIndices;
-        private readonly int[] _allShopJokerIndices = allShopJokerIndices;
         private readonly bool _requireMegaPack = requireMegaPack;
-        private readonly bool _confirmPerSeed = confirmPerSeed;
         private readonly int _maxShopItem = maxShopItem;
         private readonly int _maxBoosterPack = maxBoosterPack;
-        private readonly int _maxCommonShopJoker = maxCommonShopJoker;
-        private readonly int _maxUncommonShopJoker = maxUncommonShopJoker;
-        private readonly int _maxRareShopJoker = maxRareShopJoker;
-        private readonly int _maxAllShopJoker = maxAllShopJoker;
+        private readonly MotelyJokerStreamFlags _jokerFlags = jokerFlags;
+        private readonly MotelyJokerFixedRarityStreamFlags _fixedFlags = fixedFlags;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly VectorMask Filter(ref MotelyVectorSearchContext ctx)
@@ -178,14 +126,7 @@ public struct UncommonJokerFilterDesc(UncommonJokerClause clause)
             int needed = _clause.Min;
             Debug.Assert(needed > 0, "UncommonJokerClause.Min must be > 0 — loader bug.");
 
-            if (_confirmPerSeed)
-            {
-                var clause = _clause;
-                return ctx.SearchIndividualSeeds(
-                    (MotelySingleSearchContext singleCtx) =>
-                        ClauseScoring.ClauseMeetsMinForFilter(ref singleCtx, clause) ? 1 : 0
-                );
-            }
+            var sources = _clause.Sources ?? DefaultSources;
 
             Vector256<int> matchCounts = Vector256<int>.Zero;
             // Lanes with an in-pack duplicate: SIMD can't resample, so the scalar confirm decides.
@@ -194,10 +135,6 @@ public struct UncommonJokerFilterDesc(UncommonJokerClause clause)
 
             var shopIndices = _shopIndices;
             var boosterIndices = _boosterIndices;
-            var commonShopJokerIndices = _commonShopJokerIndices;
-            var uncommonShopJokerIndices = _uncommonShopJokerIndices;
-            var rareShopJokerIndices = _rareShopJokerIndices;
-            var allShopJokerIndices = _allShopJokerIndices;
 
             VectorMask ante1Extended = VectorMask.NoBitsSet;
             if (boosterIndices.Length > 0 && SimdPackSupport.NeedsAnte1Extension(_maxBoosterPack))
@@ -215,154 +152,28 @@ public struct UncommonJokerFilterDesc(UncommonJokerClause clause)
 
             foreach (var ante in _clause.Antes)
             {
-                // ── Raw common shop joker stream SIMD ──
-                if (commonShopJokerIndices.Length > 0)
-                {
-                    var commonShopStream = ctx.CreateCommonShopJokerStream(ante);
-
-                    for (int idx = 0; idx <= _maxCommonShopJoker; idx++)
-                    {
-                        var shopJoker = ctx.GetNextJoker(ref commonShopStream);
-                        bool isTarget = false;
-                        for (int i = 0; i < commonShopJokerIndices.Length; i++)
-                        {
-                            if (commonShopJokerIndices[i] == idx)
-                            {
-                                isTarget = true;
-                                break;
-                            }
-                        }
-
-                        if (!isTarget)
-                            continue;
-
-                        VectorMask jokerMatch = MatchJokers(shopJoker);
-                        if (jokerMatch.IsPartiallyTrue())
-                        {
-                            matchCounts = Vector256.Add(
-                                matchCounts,
-                                Vector256.ConditionalSelect(
-                                    VectorMaskToConditionalSelectMask(jokerMatch),
-                                    Vector256.Create(1),
-                                    Vector256<int>.Zero
-                                )
-                            );
-                        }
-                    }
-                }
-
-                // ── Raw uncommon shop joker stream SIMD ──
-                if (uncommonShopJokerIndices.Length > 0)
-                {
-                    var uncommonShopStream = ctx.CreateUncommonShopJokerStream(ante);
-
-                    for (int idx = 0; idx <= _maxUncommonShopJoker; idx++)
-                    {
-                        var shopJoker = ctx.GetNextJoker(ref uncommonShopStream);
-                        bool isTarget = false;
-                        for (int i = 0; i < uncommonShopJokerIndices.Length; i++)
-                        {
-                            if (uncommonShopJokerIndices[i] == idx)
-                            {
-                                isTarget = true;
-                                break;
-                            }
-                        }
-
-                        if (!isTarget)
-                            continue;
-
-                        VectorMask jokerMatch = MatchJokers(shopJoker);
-                        if (jokerMatch.IsPartiallyTrue())
-                        {
-                            matchCounts = Vector256.Add(
-                                matchCounts,
-                                Vector256.ConditionalSelect(
-                                    VectorMaskToConditionalSelectMask(jokerMatch),
-                                    Vector256.Create(1),
-                                    Vector256<int>.Zero
-                                )
-                            );
-                        }
-                    }
-                }
-
-                // ── Raw rare shop joker stream SIMD ──
-                if (rareShopJokerIndices.Length > 0)
-                {
-                    var rareShopStream = ctx.CreateRareShopJokerStream(ante);
-
-                    for (int idx = 0; idx <= _maxRareShopJoker; idx++)
-                    {
-                        var shopJoker = ctx.GetNextJoker(ref rareShopStream);
-                        bool isTarget = false;
-                        for (int i = 0; i < rareShopJokerIndices.Length; i++)
-                        {
-                            if (rareShopJokerIndices[i] == idx)
-                            {
-                                isTarget = true;
-                                break;
-                            }
-                        }
-
-                        if (!isTarget)
-                            continue;
-
-                        VectorMask jokerMatch = MatchJokers(shopJoker);
-                        if (jokerMatch.IsPartiallyTrue())
-                        {
-                            matchCounts = Vector256.Add(
-                                matchCounts,
-                                Vector256.ConditionalSelect(
-                                    VectorMaskToConditionalSelectMask(jokerMatch),
-                                    Vector256.Create(1),
-                                    Vector256<int>.Zero
-                                )
-                            );
-                        }
-                    }
-                }
-
-                // ── Raw all-rarity shop joker stream SIMD ──
-                if (allShopJokerIndices.Length > 0)
-                {
-                    var allShopStream = ctx.CreateShopJokerStream(ante);
-
-                    for (int idx = 0; idx <= _maxAllShopJoker; idx++)
-                    {
-                        var shopJoker = ctx.GetNextJoker(ref allShopStream);
-                        bool isTarget = false;
-                        for (int i = 0; i < allShopJokerIndices.Length; i++)
-                        {
-                            if (allShopJokerIndices[i] == idx)
-                            {
-                                isTarget = true;
-                                break;
-                            }
-                        }
-
-                        if (!isTarget)
-                            continue;
-
-                        VectorMask jokerMatch = MatchJokers(shopJoker);
-                        if (jokerMatch.IsPartiallyTrue())
-                        {
-                            matchCounts = Vector256.Add(
-                                matchCounts,
-                                Vector256.ConditionalSelect(
-                                    VectorMaskToConditionalSelectMask(jokerMatch),
-                                    Vector256.Create(1),
-                                    Vector256<int>.Zero
-                                )
-                            );
-                        }
-                    }
-                }
+                SimdPackSupport.WalkSpecialtyJokerSources(
+                    ref ctx,
+                    ante,
+                    sources,
+                    _targetTypes,
+                    MotelyJokerRarity.Uncommon,
+                    _clause.Edition,
+                    _clause.Stickers,
+                    _jokerFlags,
+                    _fixedFlags,
+                    ref matchCounts
+                );
 
                 // ── Shop items SIMD ──
                 if (shopIndices.Length > 0)
                 {
-                    var shopStream = ctx.CreateShopItemStream(ante, _shopState);
+                    var shopStream = ctx.CreateShopItemStream(
+                        ante,
+                        _shopState,
+                        SimdPackSupport.JokerOnlyShopFlags,
+                        _jokerFlags
+                    );
 
                     for (int slot = 0; slot <= _maxShopItem; slot++)
                     {
@@ -400,7 +211,7 @@ public struct UncommonJokerFilterDesc(UncommonJokerClause clause)
                 if (boosterIndices.Length > 0)
                 {
                     var packStream = ctx.CreateBoosterPackStream(ante);
-                    var jokerStream = ctx.CreateBuffoonPackJokerStream(ante);
+                    var jokerStream = ctx.CreateBuffoonPackJokerStream(ante, _jokerFlags);
 
                     for (int p = 0; p <= _maxBoosterPack; p++)
                     {

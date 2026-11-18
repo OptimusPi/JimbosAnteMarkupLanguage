@@ -117,6 +117,363 @@ internal static class SimdPackSupport
         var maxOk = Vector256.LessThanOrEqual(matchCounts, Vector256.Create(max.Value));
         return new VectorMask(VectorizedComparisonToMask(Vector256.BitwiseAnd(minOk, maxOk)));
     }
+
+    public const MotelyShopStreamFlags JokerOnlyShopFlags =
+        MotelyShopStreamFlags.ExcludeTarots
+        | MotelyShopStreamFlags.ExcludePlanets
+        | MotelyShopStreamFlags.ExcludeSpectrals
+        | MotelyShopStreamFlags.ExcludeStandardCards;
+
+    public const MotelyShopStreamFlags TarotOnlyShopFlags =
+        MotelyShopStreamFlags.ExcludeJokers
+        | MotelyShopStreamFlags.ExcludePlanets
+        | MotelyShopStreamFlags.ExcludeSpectrals
+        | MotelyShopStreamFlags.ExcludeStandardCards;
+
+    public const MotelyShopStreamFlags PlanetOnlyShopFlags =
+        MotelyShopStreamFlags.ExcludeJokers
+        | MotelyShopStreamFlags.ExcludeTarots
+        | MotelyShopStreamFlags.ExcludeSpectrals
+        | MotelyShopStreamFlags.ExcludeStandardCards;
+
+    public const MotelyShopStreamFlags SpectralOnlyShopFlags =
+        MotelyShopStreamFlags.ExcludeJokers
+        | MotelyShopStreamFlags.ExcludeTarots
+        | MotelyShopStreamFlags.ExcludePlanets
+        | MotelyShopStreamFlags.ExcludeStandardCards;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool HasActiveStickers(MotelyJokerSticker[] stickers)
+    {
+        for (int i = 0; i < stickers.Length; i++)
+        {
+            if (stickers[i] != MotelyJokerSticker.None)
+                return true;
+        }
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MotelyJokerStreamFlags GetJokerStreamFlags(
+        MotelyItemEdition? edition,
+        MotelyJokerSticker[] stickers,
+        MotelyJokerStreamFlags rarityExclusions
+    )
+    {
+        var flags = rarityExclusions;
+        if (!edition.HasValue)
+            flags |= MotelyJokerStreamFlags.ExcludeEdition;
+        if (!HasActiveStickers(stickers))
+            flags |= MotelyJokerStreamFlags.ExcludeStickers;
+        return flags;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static MotelyJokerFixedRarityStreamFlags GetFixedJokerStreamFlags(
+        MotelyItemEdition? edition,
+        MotelyJokerSticker[] stickers
+    )
+    {
+        var flags = MotelyJokerFixedRarityStreamFlags.Default;
+        if (!edition.HasValue)
+            flags |= MotelyJokerFixedRarityStreamFlags.ExcludeEdition;
+        if (!HasActiveStickers(stickers))
+            flags |= MotelyJokerFixedRarityStreamFlags.ExcludeStickers;
+        return flags;
+    }
+
+    public static MotelyJokerStreamFlags GetRarityExclusions(MotelyItemType[] targetTypes)
+    {
+        if (targetTypes.Length == 0)
+            return MotelyJokerStreamFlags.Default;
+
+        bool hasCommon = false;
+        bool hasUncommon = false;
+        bool hasRare = false;
+
+        for (int i = 0; i < targetTypes.Length; i++)
+        {
+            var rarity = (MotelyJokerRarity)((int)targetTypes[i] & MotelyGlobals.JokerRarityMask);
+            switch (rarity)
+            {
+                case MotelyJokerRarity.Common:
+                    hasCommon = true;
+                    break;
+                case MotelyJokerRarity.Uncommon:
+                    hasUncommon = true;
+                    break;
+                case MotelyJokerRarity.Rare:
+                    hasRare = true;
+                    break;
+            }
+        }
+
+        var flags = MotelyJokerStreamFlags.Default;
+        if (!hasCommon)
+            flags |= MotelyJokerStreamFlags.ExcludeCommon;
+        if (!hasUncommon)
+            flags |= MotelyJokerStreamFlags.ExcludeUncommon;
+        if (!hasRare)
+            flags |= MotelyJokerStreamFlags.ExcludeRare;
+        return flags;
+    }
+
+    public static void CacheSpecialtyJokerStreams(
+        ref MotelyFilterCreationContext ctx,
+        int ante,
+        JokerSourceConfig sources,
+        MotelyJokerStreamFlags jokerFlags,
+        MotelyJokerFixedRarityStreamFlags fixedFlags
+    )
+    {
+        if (sources.CommonShopJokers.Length > 0)
+            ctx.CacheCommonShopJokerStream(ante, fixedFlags);
+        if (sources.UncommonShopJokers.Length > 0)
+            ctx.CacheUncommonShopJokerStream(ante, fixedFlags);
+        if (sources.RareShopJokers.Length > 0)
+            ctx.CacheRareShopJokerStream(ante, fixedFlags);
+        if (sources.AllShopJokers.Length > 0)
+            ctx.CacheShopJokerStream(ante, jokerFlags);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int MaxSlot(int[] indices)
+    {
+        int max = 0;
+        for (int i = 0; i < indices.Length; i++)
+        {
+            if (indices[i] > max)
+                max = indices[i];
+        }
+        return max;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool ContainsIndex(int[] indices, int value)
+    {
+        for (int i = 0; i < indices.Length; i++)
+        {
+            if (indices[i] == value)
+                return true;
+        }
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static VectorMask MatchJokers(
+        in MotelyItemVector item,
+        MotelyItemType[] targetTypes,
+        MotelyJokerRarity? wildcardRarity,
+        MotelyItemEdition? edition,
+        MotelyJokerSticker[] stickers
+    )
+    {
+        VectorMask jokerMatch;
+        if (targetTypes.Length == 0)
+        {
+            jokerMatch = VectorEnum256.Equals(item.TypeCategory, MotelyItemTypeCategory.Joker);
+            if (wildcardRarity.HasValue)
+            {
+                var rarityVec = new VectorEnum256<MotelyJokerRarity>(
+                    Vector256.BitwiseAnd(
+                        item.Value,
+                        Vector256.Create(MotelyGlobals.JokerRarityMask)
+                    )
+                );
+                jokerMatch &= VectorEnum256.Equals(rarityVec, wildcardRarity.Value);
+            }
+        }
+        else
+        {
+            jokerMatch = VectorMask.NoBitsSet;
+            for (int t = 0; t < targetTypes.Length; t++)
+                jokerMatch |= VectorEnum256.Equals(item.Type, targetTypes[t]);
+        }
+
+        if (edition.HasValue)
+            jokerMatch &= VectorEnum256.Equals(item.Edition, edition.Value);
+
+        for (int s = 0; s < stickers.Length; s++)
+        {
+            switch (stickers[s])
+            {
+                case MotelyJokerSticker.Eternal:
+                    jokerMatch &= item.IsEternal;
+                    break;
+                case MotelyJokerSticker.Perishable:
+                    jokerMatch &= item.IsPerishable;
+                    break;
+                case MotelyJokerSticker.Rental:
+                    jokerMatch &= item.IsRental;
+                    break;
+            }
+        }
+
+        return jokerMatch;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void WalkSpecialtyJokerSources(
+        ref MotelyVectorSearchContext ctx,
+        int ante,
+        JokerSourceConfig sources,
+        MotelyItemType[] targetTypes,
+        MotelyJokerRarity? wildcardRarity,
+        MotelyItemEdition? edition,
+        MotelyJokerSticker[] stickers,
+        MotelyJokerStreamFlags jokerFlags,
+        MotelyJokerFixedRarityStreamFlags fixedFlags,
+        ref Vector256<int> matchCounts
+    )
+    {
+        bool canMatchCommon = !jokerFlags.HasFlag(MotelyJokerStreamFlags.ExcludeCommon);
+        bool canMatchUncommon = !jokerFlags.HasFlag(MotelyJokerStreamFlags.ExcludeUncommon);
+        bool canMatchRare = !jokerFlags.HasFlag(MotelyJokerStreamFlags.ExcludeRare);
+
+        if (sources.Judgement.Length > 0)
+        {
+            int max = MaxSlot(sources.Judgement);
+            var stream = ctx.CreateJudgementJokerStream(ante, jokerFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.Judgement, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+
+        if (sources.Wraith.Length > 0 && canMatchRare)
+        {
+            int max = MaxSlot(sources.Wraith);
+            var stream = ctx.CreateWraithJokerStream(ante, fixedFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.Wraith, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+
+        if (sources.RiffRaff.Length > 0 && canMatchCommon)
+        {
+            int max = MaxSlot(sources.RiffRaff);
+            var stream = ctx.CreateRiffRaffJokerStream(ante, fixedFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.RiffRaff, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+
+        if (sources.RareTag.Length > 0 && canMatchRare)
+        {
+            int max = MaxSlot(sources.RareTag);
+            var stream = ctx.CreateRareTagJokerStream(ante, fixedFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.RareTag, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+
+        if (sources.UncommonTag.Length > 0 && canMatchUncommon)
+        {
+            int max = MaxSlot(sources.UncommonTag);
+            var stream = ctx.CreateUncommonTagJokerStream(ante, fixedFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.UncommonTag, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+
+        if (sources.CommonShopJokers.Length > 0 && canMatchCommon)
+        {
+            int max = MaxSlot(sources.CommonShopJokers);
+            var stream = ctx.CreateCommonShopJokerStream(ante, fixedFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.CommonShopJokers, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+
+        if (sources.UncommonShopJokers.Length > 0 && canMatchUncommon)
+        {
+            int max = MaxSlot(sources.UncommonShopJokers);
+            var stream = ctx.CreateUncommonShopJokerStream(ante, fixedFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.UncommonShopJokers, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+
+        if (sources.RareShopJokers.Length > 0 && canMatchRare)
+        {
+            int max = MaxSlot(sources.RareShopJokers);
+            var stream = ctx.CreateRareShopJokerStream(ante, fixedFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.RareShopJokers, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+
+        if (sources.AllShopJokers.Length > 0)
+        {
+            int max = MaxSlot(sources.AllShopJokers);
+            var stream = ctx.CreateShopJokerStream(ante, jokerFlags);
+            for (int idx = 0; idx <= max; idx++)
+            {
+                var item = ctx.GetNextJoker(ref stream);
+                if (!ContainsIndex(sources.AllShopJokers, idx))
+                    continue;
+                AddMatchCounts(
+                    MatchJokers(item, targetTypes, wildcardRarity, edition, stickers),
+                    ref matchCounts
+                );
+            }
+        }
+    }
 }
 
 /// <summary>
@@ -141,13 +498,17 @@ internal struct BuffoonPackDuplicateTracker
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public VectorMask Add(in MotelyItemVector joker)
     {
+        VectorMask validJoker = ~VectorEnum256.Equals(
+            joker.Type,
+            MotelyItemType.JokerExcludedByStream
+        );
         VectorMask duplicate = VectorMask.NoBitsSet;
         if (_count > 0)
-            duplicate |= VectorEnum256.Equals(joker.Type, _first.Type);
+            duplicate |= VectorEnum256.Equals(joker.Type, _first.Type) & validJoker;
         if (_count > 1)
-            duplicate |= VectorEnum256.Equals(joker.Type, _second.Type);
+            duplicate |= VectorEnum256.Equals(joker.Type, _second.Type) & validJoker;
         if (_count > 2)
-            duplicate |= VectorEnum256.Equals(joker.Type, _third.Type);
+            duplicate |= VectorEnum256.Equals(joker.Type, _third.Type) & validJoker;
 
         switch (_count)
         {

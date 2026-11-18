@@ -94,8 +94,13 @@ public struct LegendarySoulOrderFilterDesc(LegendarySoulOrderClause clause)
     public LegendarySoulOrderFilter CreateFilter(ref MotelyFilterCreationContext ctx)
     {
         int maxAnte = _clause.MaxAnte > 0 ? _clause.MaxAnte : 8;
+        ctx.CachePseudoHash(MotelyPrngKeys.JokerLegendary, force: true);
         for (int ante = 0; ante <= maxAnte; ante++)
+        {
             ctx.CacheBoosterPackStream(ante, force: true);
+            ctx.CacheArcanaPackTarotStream(ante, soulOnly: true, force: true);
+            ctx.CacheSpectralPackSpectralStream(ante, soulOnly: true, force: true);
+        }
         return new LegendarySoulOrderFilter(_clause);
     }
 
@@ -108,15 +113,12 @@ public struct LegendarySoulOrderFilterDesc(LegendarySoulOrderClause clause)
         {
             Debug.Assert(_clause.Min > 0, "LegendarySoulOrderClause.Min must be > 0 — loader bug.");
 
-            // Rough cut only: the run-wide Soul walk is order-dependent (it threads one Joker4
-            // stream across antes), so it cannot be a pure SIMD lane mask. Keep every valid lane
-            // and let the scalar scoring pass confirm (IsExactFilterConfirm = false).
             uint laneMask = 0;
             for (int lane = 0; lane < MotelyGlobals.MaxVectorWidth; lane++)
                 if (ctx.IsLaneValid(lane))
                     laneMask |= 1u << lane;
 
-            return new VectorMask(laneMask);
+            return LegendarySoulEditionPrefilter.ApplySoulOrderPrefilter(ref ctx, _clause, laneMask);
         }
     }
 }

@@ -42,8 +42,10 @@ public struct TarotCardFilterDesc(TarotCardClause clause)
 
         foreach (var ante in _clause.Antes)
         {
-            ctx.CacheShopStream(ante);
-            ctx.CacheBoosterPackStream(ante);
+            if (sources.ShopItems.Length > 0)
+                ctx.CacheShopStream(ante, SimdPackSupport.TarotOnlyShopFlags);
+            if (sources.BoosterPacks.Length > 0)
+                ctx.CacheBoosterPackStream(ante);
         }
 
         int maxShopItem = 0;
@@ -153,7 +155,11 @@ public struct TarotCardFilterDesc(TarotCardClause clause)
                 // ── Shop items SIMD ──
                 if (shopIndices.Length > 0)
                 {
-                    var shopStream = ctx.CreateShopItemStream(ante, _shopState);
+                    var shopStream = ctx.CreateShopItemStream(
+                        ante,
+                        _shopState,
+                        SimdPackSupport.TarotOnlyShopFlags
+                    );
 
                     for (int slot = 0; slot <= maxShopItem; slot++)
                     {
