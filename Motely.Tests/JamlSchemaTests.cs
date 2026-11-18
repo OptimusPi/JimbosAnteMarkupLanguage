@@ -202,13 +202,13 @@ public sealed class JamlSchemaTests
         // Why JamlConfigLoader.BoundMembers reads the context through the naming convention and
         // the YamlMember aliases: on its own it lists the C# properties.
         var raw = new JamlYamlContext().GetTypeInspector().GetProperties(typeof(JamlConfig), null).Select(member => member.Name).ToList();
-        Assert.Contains("MustTagged", raw);
+        Assert.Contains("Must", raw);
         Assert.DoesNotContain("must", raw);
 
         var bound = JamlConfigLoader.BoundMembers(typeof(JamlConfig)).Select(member => member.Name).ToList();
         Assert.Contains("must", bound);
         Assert.Contains("dateCreated", bound);
-        Assert.DoesNotContain("MustTagged", bound);
+        Assert.DoesNotContain("Must", bound);
     }
 
     [Fact]

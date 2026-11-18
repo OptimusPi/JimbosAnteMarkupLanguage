@@ -31,10 +31,10 @@ internal static class JamlSchemaAnnotations
         [(typeof(JamlConfig), "mustNot")] = "Clauses a seed has to not match.",
 
         // ── on every clause ──
-        [(typeof(IMotelyClause), "label")] = "The clause's column name in results. Derived from the clause when not written.",
-        [(typeof(IMotelyClause), "min")] = "The fewest occurrences that count as a match. 1 when not written.",
-        [(typeof(IMotelyClause), "max")] = "The most occurrences that still count as a match. No limit when not written.",
-        [(typeof(IMotelyClause), "score")] = "The clause's weight in a seed's score under should:. 1 when not written.",
+        [(typeof(MotelyClause), "label")] = "The clause's column name in results. Derived from the clause when not written.",
+        [(typeof(MotelyClause), "min")] = "The fewest occurrences that count as a match. 1 when not written.",
+        [(typeof(MotelyClause), "max")] = "The most occurrences that still count as a match. No limit when not written.",
+        [(typeof(MotelyClause), "score")] = "The clause's weight in a seed's score under should:. 1 when not written.",
         [(typeof(IAnteScopedClause), "antes")] = "The antes the clause reads. Antes 1 to 8 when not written.",
         [(typeof(IAnteScopedClause), "ante")] = "Another spelling of antes: one ante or a list of them.",
         [(typeof(IWithScopedClause), "with")] = "What the player holds while this clause is read.",

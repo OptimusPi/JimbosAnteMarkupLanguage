@@ -99,9 +99,9 @@ public static partial class JamlConfigLoader
     /// </summary>
     internal static readonly JamlRule[] ClauseRules =
     [
-        new(JamlRuleKind.Range, [typeof(IMotelyClause)], "min", "min and max run from 0 up.") { Min = 0 },
-        new(JamlRuleKind.Range, [typeof(IMotelyClause)], "max", "min and max run from 0 up.") { Min = 0 },
-        new(JamlRuleKind.NotBelowMin, [typeof(IMotelyClause)], "max",
+        new(JamlRuleKind.Range, [typeof(MotelyClause)], "min", "min and max run from 0 up.") { Min = 0 },
+        new(JamlRuleKind.Range, [typeof(MotelyClause)], "max", "min and max run from 0 up.") { Min = 0 },
+        new(JamlRuleKind.NotBelowMin, [typeof(MotelyClause)], "max",
             "max is below min (min defaults to 1), so nothing can match."),
         new(JamlRuleKind.Forbidden, [typeof(AndClause)], "min", "an and takes no min or max: set them on its clauses.")
         {
@@ -211,10 +211,10 @@ public static partial class JamlConfigLoader
     /// <summary>Whether <paramref name="target"/> breaks <paramref name="rule"/>.</summary>
     internal static bool Breaks(JamlRule rule, object target) =>
         rule.Kind == JamlRuleKind.NotBelowMin
-            ? target is IMotelyClause clause && clause.Max < clause.Min
+            ? target is MotelyClause clause && clause.Max < clause.Min
             : rule.BrokenBy(BoundMember(target.GetType(), rule.Member).Read(target).Value);
 
-    private static void CheckBounds(IEnumerable<IMotelyClause> clauses)
+    private static void CheckBounds(IEnumerable<MotelyClause> clauses)
     {
         foreach (var clause in clauses)
         {
@@ -233,7 +233,7 @@ public static partial class JamlConfigLoader
         }
     }
 
-    private static InvalidOperationException OutOfRange(IMotelyClause clause, string rule)
+    private static InvalidOperationException OutOfRange(MotelyClause clause, string rule)
     {
         var key = JamlClauseBinding.ClauseTypeByKey.FirstOrDefault(pair => pair.Value == clause.GetType()).Key
             ?? clause.GetType().Name;

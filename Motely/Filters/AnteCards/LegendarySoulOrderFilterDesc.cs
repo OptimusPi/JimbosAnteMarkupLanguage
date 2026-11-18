@@ -18,7 +18,7 @@ namespace Motely.Filters;
 /// <c>Joker4</c> draws (the same sequence <c>jamlyze_seeds</c> reports).
 /// </summary>
 [YamlDotNet.Serialization.YamlSerializable]
-public sealed partial class LegendarySoulOrderClause: IMotelyClause, IWithScopedClause
+public sealed partial class LegendarySoulOrderClause: MotelyClause, IWithScopedClause
 {
     public SoulOrderEntry[]? SoulOrder
     {
@@ -55,11 +55,6 @@ public sealed partial class LegendarySoulOrderClause: IMotelyClause, IWithScoped
         return entries;
     }
 
-    public string? Label { get; set; }
-    public int Min { get; set; } = 1;
-    public int? Max { get; set; }
-    public int Score { get; set; } = 1;
-
     /// <summary>
     /// The ordered Souls: entry <c>i</c> is the (i+1)-th Soul the run opens. A filter may write the
     /// list as <c>soulOrder:</c>, <c>soulOrders:</c> or <c>entries:</c>; all three land here, so all
@@ -80,7 +75,7 @@ public sealed partial class LegendarySoulOrderClause: IMotelyClause, IWithScoped
     /// </summary>
     public MotelyWith With { get; set; } = new();
 
-    public IMotelySeedFilterDesc CreateFilterDesc() => new LegendarySoulOrderFilterDesc(this);
+    public override IMotelySeedFilterDesc CreateFilterDesc() => new LegendarySoulOrderFilterDesc(this);
 }
 
 /// <summary>One Soul in a <c>soulOrder:</c> list: the legendary it must give, and the antes it may sit in.</summary>

@@ -26,7 +26,7 @@ public sealed partial class LuckyMoneyClause : LuckEventClause
     public JamlEventRolls LuckyMoney
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<LuckyMoneyRoll>(this, new(Luck));
@@ -39,7 +39,7 @@ public sealed partial class LuckyMultClause : LuckEventClause
     public JamlEventRolls LuckyMult
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<LuckyMultRoll>(this, new(Luck));
@@ -52,7 +52,7 @@ public sealed partial class WheelOfFortuneClause : LuckEventClause
     public JamlEventRolls WheelOfFortune
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<WheelOfFortuneRoll>(this, new(Luck));
@@ -65,7 +65,7 @@ public sealed partial class WheelStaysFlippedClause : LuckEventClause
     public JamlEventRolls WheelStaysFlipped
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<WheelStaysFlippedRoll>(this, new(Luck));
@@ -78,7 +78,7 @@ public sealed partial class GlassDestroyClause : LuckEventClause
     public JamlEventRolls GlassDestroy
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<GlassDestroyRoll>(this, new(Luck));
@@ -91,7 +91,7 @@ public sealed partial class CavendishExtinctClause : LuckEventClause
     public JamlEventRolls CavendishExtinct
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<CavendishExtinctRoll>(this, new(Luck));
@@ -104,7 +104,7 @@ public sealed partial class GrosMichelExtinctClause : LuckEventClause
     public JamlEventRolls GrosMichelExtinct
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<GrosMichelExtinctRoll>(this, new(Luck));
@@ -117,7 +117,7 @@ public sealed partial class SpaceLevelupClause : LuckEventClause
     public JamlEventRolls SpaceLevelup
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<SpaceLevelupRoll>(this, new(Luck));
@@ -130,7 +130,7 @@ public sealed partial class BusinessPayoutClause : EventClause
     public JamlEventRolls BusinessPayout
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<BusinessPayoutRoll>(this, default);
@@ -143,7 +143,7 @@ public sealed partial class ParkingPayoutClause : EventClause
     public JamlEventRolls ParkingPayout
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<ParkingPayoutRoll>(this, default);
@@ -156,7 +156,7 @@ public sealed partial class BloodstoneTriggerClause : EventClause
     public JamlEventRolls BloodstoneTrigger
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     public override IMotelySeedFilterDesc CreateFilterDesc() => new EventFilterDesc<BloodstoneTriggerRoll>(this, default);
@@ -169,7 +169,7 @@ public sealed partial class MisprintMultClause : EventClause
     public JamlEventRolls MisprintMult
     {
         get => new() { Rolls = Rolls };
-        set => Rolls = value.Rolls is { Length: > 0 } r ? r : Rolls;
+        set => Rolls = value.ToArray();
     }
 
     /// <summary>The least Mult a roll must show to count (0..23).</summary>

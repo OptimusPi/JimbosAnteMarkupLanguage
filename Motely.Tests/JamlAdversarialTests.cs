@@ -32,8 +32,8 @@ public sealed class JamlAdversarialTests
     [InlineData("must:\n  - luckyMoney: []\n", "at least one roll")]
     [InlineData("must:\n  - luckyMoney:\n", "at least one roll")]
     [InlineData("must:\n  - glassDestroy: []\n", "at least one roll")]
-    [InlineData("must:\n  - luckyMoney: any\n", "is not a roll")]
-    [InlineData("must:\n  - luckyMoney: ~\n", "is not a roll")]
+    [InlineData("must:\n  - luckyMoney: any\n", "at least one roll")]
+    [InlineData("must:\n  - luckyMoney: ~\n", "at least one roll")]
     public void AnEventClauseWithNoRoll_IsRefused(string yaml, string fragment) => RefusedWith(yaml, fragment);
 
     private static void RefusedWith(string yaml, string fragment)

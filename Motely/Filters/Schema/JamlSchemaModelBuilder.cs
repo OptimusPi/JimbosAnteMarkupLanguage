@@ -286,7 +286,7 @@ internal sealed class JamlSchemaModelBuilder
             return JamlValueKind.Name;
         if (bare == typeof(List<string>))
             return JamlValueKind.Texts;
-        if (bare == typeof(List<object>) || bare == typeof(object[]))
+        if (bare == typeof(List<object>) || bare == typeof(object[]) || bare == typeof(MotelyClause[]) || bare == typeof(List<MotelyClause>))
             return JamlValueKind.Clauses;
         if (bare.IsArray && bare.GetElementType() is { IsClass: true } element && element != typeof(string))
             return JamlValueKind.Blocks;
