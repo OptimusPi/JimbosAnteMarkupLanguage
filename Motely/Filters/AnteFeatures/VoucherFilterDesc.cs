@@ -73,16 +73,32 @@ public struct VoucherFilterDesc(VoucherClause clause)
                         break;
                     }
                 }
-                if (!isTarget)
-                {
-                    voucherState.ActivateVoucher(ctx.GetAnteFirstVoucher(ante, voucherState));
-                    continue;
-                }
-
                 // Roll 0 is the first draw of this ante's stream; later rolls continue it.
                 var voucherStream = ctx.CreateVoucherStream(ante);
                 var vouchers = ctx.GetNextVoucher(ref voucherStream, voucherState);
                 voucherState.ActivateVoucher(vouchers);
+
+                // Hieroglyph/Petroglyph send the run back an ante, so the same shop offers a
+                // bonus voucher: the next draw on this stream, with the glyph already redeemed.
+                // Mirrors ClauseScoring.ApplyPrepareRunState.
+                VectorMask glyphMask = (VectorMask)(
+                    VectorEnum256.Equals(vouchers, MotelyVoucher.Hieroglyph)
+                    | VectorEnum256.Equals(vouchers, MotelyVoucher.Petroglyph)
+                );
+                if (!isTarget)
+                {
+                    if (!glyphMask.IsAllFalse())
+                        voucherState.ActivateVoucher(ctx.GetNextVoucher(ref voucherStream, voucherState), glyphMask);
+                    continue;
+                }
+                if (!glyphMask.IsAllFalse())
+                {
+                    var bonusStream = ctx.CreateVoucherStream(ante);
+                    ctx.GetNextVoucher(ref bonusStream, voucherState);
+                    var bonus = ctx.GetNextVoucher(ref bonusStream, voucherState);
+                    voucherState.ActivateVoucher(bonus, glyphMask);
+                    matchCounts = AddVoucherMatches(matchCounts, bonus, clause, glyphMask);
+                }
 
                 matchCounts = AccumulateVoucherRolls(
                     ref ctx,
