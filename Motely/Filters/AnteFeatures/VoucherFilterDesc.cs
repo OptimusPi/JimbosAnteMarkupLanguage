@@ -79,24 +79,18 @@ public struct VoucherFilterDesc(VoucherClause clause)
                 voucherState.ActivateVoucher(vouchers);
 
                 // Hieroglyph/Petroglyph send the run back an ante, so the same shop offers a
-                // bonus voucher: the next draw on this stream, with the glyph already redeemed.
-                // Mirrors ClauseScoring.ApplyPrepareRunState.
+                // bonus voucher: the very next draw on this stream, with the glyph already
+                // redeemed (mirrors ClauseScoring.ApplyPrepareRunState). That bonus IS roll 1 --
+                // AccumulateVoucherRolls draws it, not a separate call, or every later roll
+                // index would be shifted off by one.
                 VectorMask glyphMask = (VectorMask)(
                     VectorEnum256.Equals(vouchers, MotelyVoucher.Hieroglyph)
                     | VectorEnum256.Equals(vouchers, MotelyVoucher.Petroglyph)
                 );
-                if (!isTarget)
-                {
-                    if (!glyphMask.IsAllFalse())
-                        voucherState.ActivateVoucher(ctx.GetNextVoucher(ref voucherStream, voucherState), glyphMask);
+                bool anyGlyph = !glyphMask.IsAllFalse();
+
+                if (!isTarget && !anyGlyph)
                     continue;
-                }
-                if (!glyphMask.IsAllFalse())
-                {
-                    var bonus = ctx.GetNextVoucher(ref voucherStream, voucherState);
-                    voucherState.ActivateVoucher(bonus, glyphMask);
-                    matchCounts = AddVoucherMatches(matchCounts, bonus, clause, glyphMask);
-                }
 
                 matchCounts = AccumulateVoucherRolls(
                     ref ctx,
@@ -104,7 +98,10 @@ public struct VoucherFilterDesc(VoucherClause clause)
                     ref voucherState,
                     vouchers,
                     clause,
-                    matchCounts
+                    matchCounts,
+                    isTarget,
+                    glyphMask,
+                    anyGlyph
                 );
             }
 
@@ -118,24 +115,45 @@ public struct VoucherFilterDesc(VoucherClause clause)
             ref MotelyVectorRunState voucherState,
             VectorEnum256<MotelyVoucher> anteVouchers,
             VoucherClause clause,
-            Vector256<int> matchCounts
+            Vector256<int> matchCounts,
+            bool isTarget,
+            VectorMask glyphMask,
+            bool anyGlyph
         )
         {
             // Walk the voucher stream once, index 0..maxRoll, mirroring the scalar
             // CountVoucherOccurrences. Index 0 is the ante award, already drawn from
-            // voucherStream; 1+ are the draws after it on the same stream.
+            // voucherStream; 1+ are the draws after it on the same stream. When any lane in
+            // this batch rolled a glyph, roll 1 must be drawn even if the clause itself never
+            // asked for it, so the bonus gets activated into run state for those lanes.
             // (stackalloc of VectorEnum256 is the same pattern TagFilter uses for its tag-stream
             // draws.)
-            int maxRoll = clause.Rolls.Max();
+            int maxRoll = clause.Rolls.Length == 0 ? 0 : clause.Rolls.Max();
+            int neededMax = anyGlyph ? Math.Max(maxRoll, 1) : maxRoll;
             Span<VectorEnum256<MotelyVoucher>> draws =
-                stackalloc VectorEnum256<MotelyVoucher>[maxRoll + 1];
+                stackalloc VectorEnum256<MotelyVoucher>[neededMax + 1];
             draws[0] = anteVouchers;
 
-            for (int i = 1; i <= maxRoll; i++)
+            for (int i = 1; i <= neededMax; i++)
                 draws[i] = ctx.GetNextVoucher(ref voucherStream, voucherState);
 
+            if (anyGlyph)
+                voucherState.ActivateVoucher(draws[1], glyphMask); // the bonus is real, forced
+
+            if (!isTarget)
+                return matchCounts;
+
+            bool rolledOne = false;
             foreach (var roll in clause.Rolls)
+            {
+                if (roll == 1) rolledOne = true;
                 matchCounts = AddVoucherMatches(matchCounts, draws[roll], clause);
+            }
+
+            // The bonus always appears in the real shop for this ante, so count it for glyph
+            // lanes even when the clause's Rolls didn't explicitly ask for roll 1.
+            if (anyGlyph && !rolledOne)
+                matchCounts = AddVoucherMatches(matchCounts, draws[1], clause, glyphMask);
 
             return matchCounts;
         }

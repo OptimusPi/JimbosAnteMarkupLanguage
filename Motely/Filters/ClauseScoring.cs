@@ -1125,7 +1125,7 @@ public static class ClauseScoring
         int count = 0;
         int maxAnte = GetMaxAnte(clause);
         int maxVoucherRoll = clause.Rolls.Max();
-        Span<MotelyVoucher> streamDraws = stackalloc MotelyVoucher[maxVoucherRoll + 1];
+        Span<MotelyVoucher> streamDraws = stackalloc MotelyVoucher[Math.Max(maxVoucherRoll, 1) + 1];
 
         for (int ante = 1; ante <= maxAnte; ante++)
         {
@@ -1133,27 +1133,39 @@ public static class ClauseScoring
             var voucherStream = ctx.CreateVoucherStream(ante);
             var voucher = ctx.GetNextVoucher(ref voucherStream, localState);
             localState.ActivateVoucher(voucher);
-            if (voucher is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph)
+
+            bool isGlyph = voucher is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph;
+            bool isTargetAnte = ArrayContains(clause.Antes, ante);
+
+            // Hieroglyph/Petroglyph send the run back an ante, so the shop immediately offers a
+            // bonus voucher: the very next draw on this same stream (same as ApplyPrepareRunState).
+            // That bonus IS roll 1 -- it is not a separate draw, so we must not consume the
+            // stream twice for it or every later roll index would be shifted off by one.
+            int neededMax = isGlyph ? Math.Max(maxVoucherRoll, 1) : maxVoucherRoll;
+            if (isTargetAnte || isGlyph)
             {
-                // Same as ApplyPrepareRunState: the glyph sends the run back an ante and the
-                // shop offers the next voucher on this stream, with the glyph redeemed.
-                var bonus = ctx.GetNextVoucher(ref voucherStream, localState);
-                localState.ActivateVoucher(bonus);
-                if (ArrayContains(clause.Antes, ante) && Names(clause.Vouchers, bonus))
-                    count++;
-            }
-            if (ArrayContains(clause.Antes, ante))
-            {
-                for (int i = 1; i <= maxVoucherRoll; i++)
+                for (int i = 1; i <= neededMax; i++)
                     streamDraws[i] = ctx.GetNextVoucher(ref voucherStream, localState);
 
-                foreach (var roll in clause.Rolls)
-                {
-                    var rolled = roll == 0 ? voucher : streamDraws[roll];
-                    if (Names(clause.Vouchers, rolled))
-                        count++;
-                }
+                if (isGlyph)
+                    localState.ActivateVoucher(streamDraws[1]); // the bonus is a real, forced voucher
             }
+
+            if (!isTargetAnte) continue;
+
+            bool countedRoll1 = false;
+            foreach (var roll in clause.Rolls)
+            {
+                if (roll == 1) countedRoll1 = true;
+                var rolled = roll == 0 ? voucher : streamDraws[roll];
+                if (Names(clause.Vouchers, rolled))
+                    count++;
+            }
+
+            // The bonus always appears in the real shop for this ante, so count it even when the
+            // clause's Rolls didn't explicitly ask for roll 1.
+            if (isGlyph && !countedRoll1 && Names(clause.Vouchers, streamDraws[1]))
+                count++;
         }
 
         return count;
