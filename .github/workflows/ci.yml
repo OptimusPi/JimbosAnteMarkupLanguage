@@ -28,7 +28,7 @@ permissions:
 
 env:
   REWAFFLE_NUGET: https://nuget.pkg.github.com/rewaffle/index.json
-  HAS_REWAFFLE: ${{ secrets.REWAFFLE_TOKEN != '' }}
+  HAS_REWAFFLE: ${{ (secrets.REWAFFLE_TOKEN || secrets.REWAFFLE_SECRET) != '' }}
 
 jobs:
   test:
@@ -42,7 +42,7 @@ jobs:
           global-json-file: global.json
       - if: env.HAS_REWAFFLE == 'true'
         env:
-          REWAFFLE_TOKEN: ${{ secrets.REWAFFLE_TOKEN }}
+          REWAFFLE_TOKEN: ${{ secrets.REWAFFLE_TOKEN || secrets.REWAFFLE_SECRET }}
         run: dotnet nuget add source "$REWAFFLE_NUGET" --name rewaffle --username rewaffle --password "$REWAFFLE_TOKEN" --store-password-in-clear-text
       - run: dotnet workload install wasm-tools
       - name: build
@@ -101,7 +101,7 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@rewaffle"
       - env:
-          REWAFFLE_TOKEN: ${{ secrets.REWAFFLE_TOKEN }}
+          REWAFFLE_TOKEN: ${{ secrets.REWAFFLE_TOKEN || secrets.REWAFFLE_SECRET }}
         run: dotnet nuget add source "$REWAFFLE_NUGET" --name rewaffle --username rewaffle --password "$REWAFFLE_TOKEN" --store-password-in-clear-text
       - run: dotnet workload install wasm-tools
       # Bootsharp runs wasm-opt on a Release publish, ignores its exit code and only warns when it
@@ -126,7 +126,7 @@ jobs:
           echo "$RUNNER_TEMP/wasm-opt-recorded" >> "$GITHUB_PATH"
       - run: npm ci
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.REWAFFLE_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.REWAFFLE_TOKEN || secrets.REWAFFLE_SECRET }}
       - name: Build with wasm-opt
         shell: bash
         run: |
@@ -206,12 +206,12 @@ jobs:
           path: Motely.Wasm/bin/motely-wasm
       - run: npm ci
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.REWAFFLE_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.REWAFFLE_TOKEN || secrets.REWAFFLE_SECRET }}
       - run: npm ls
       - name: Install this run's motely-wasm
         shell: bash
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.REWAFFLE_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.REWAFFLE_TOKEN || secrets.REWAFFLE_SECRET }}
         run: |
           tarball=$(cd ../Motely.Wasm && npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP" | tail -n 1)
           npm install --no-save "$RUNNER_TEMP/$tarball"
