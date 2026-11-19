@@ -21,7 +21,6 @@ internal sealed class DuckDbResultSink : IMotelyResultSink
     private readonly string? _parquetPath;
     private readonly bool _isFileDb;
     private DuckDBAppender? _appender;
-    private readonly Dictionary<string, string>? _pendingWindows;
     private long _bufferedRows;
     private bool _disposed;
 
@@ -63,9 +62,6 @@ internal sealed class DuckDbResultSink : IMotelyResultSink
         }
 
         EnsureTable();
-
-        if (_includeWindow)
-            _pendingWindows = new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
     private void EnsureTable()
@@ -302,7 +298,6 @@ internal sealed class DuckDbResultSink : IMotelyResultSink
             finally
             {
                 _disposed = true;
-                _pendingWindows?.Clear();
                 _connection.Dispose();
             }
         }

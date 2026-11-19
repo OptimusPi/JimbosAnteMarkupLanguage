@@ -1,4 +1,4 @@
-﻿==ANTE 0==
+==ANTE 0==
 Boss: TheClub
 Voucher: Grabber
 Tags: DoubleTag, InvestmentTag

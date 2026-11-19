@@ -1,26 +1,36 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import {
   JimboApp,
   JimboBackground,
   JimboBalatroFooter,
   JimboBadge,
+  JimboPanel,
+  JimboText,
   JimboWordmark,
   SeedLab,
   STARTER_JAML,
 } from "jaml-ui";
 import { JimboTabs } from "jaml-ui/ui";
-import { AgentPanel } from "./AgentPanel.js";
 import { FilterFolder, type OpenedFilter } from "./FilterFolder.js";
-import { SeedPile } from "./SeedPile.js";
+import { buildSeedLabYaml } from "./filterLibrary.js";
+import { SeedPile, type IncomingPile } from "./SeedPile.js";
 import { useSeedLabWebMCP } from "./webmcp.js";
+
+const FilterLibrary = lazy(() =>
+  import("./FilterLibrary.js").then((m) => ({ default: m.FilterLibrary })),
+);
+const AgentPanel = lazy(() =>
+  import("./AgentPanel.js").then((m) => ({ default: m.AgentPanel })),
+);
 
 const SEED_RE = /^[1-9A-Z]{0,8}$/;
 
-/** The pile is the front page; the lab is the filter editor; the agent talks to a server. */
-type TabId = "pile" | "lab" | "agent";
+/** The pile is the front page; filters holds the built-in corpus; lab is the editor; agent connects to Motely.MCP. */
+type TabId = "pile" | "filters" | "lab" | "agent";
 
 function tabFrom(param: string | undefined, fallback: TabId): TabId {
-  if (param === "agent" || param === "server") return "agent";
+  if (param === "agent" || param === "server" || param === "ripper" || param === "mcp") return "agent";
+  if (param === "filters" || param === "library") return "filters";
   if (param === "lab") return "lab";
   if (param === "pile") return "pile";
   return fallback;
@@ -78,8 +88,10 @@ function getQueryParams(): {
 export function App({ folders }: { folders: boolean }) {
   const [initialParams] = useState(getQueryParams);
   const [opened, setOpened] = useState<OpenedFilter | null>(initialParams.initialOpened);
+  const [openedSeq, setOpenedSeq] = useState(0);
   const [tab, setTab] = useState<TabId>(initialParams.tab);
   const [agentInput, setAgentInput] = useState<string>(initialParams.agentInput);
+  const [incomingPile, setIncomingPile] = useState<IncomingPile | null>(null);
 
   // Sync state if URL changes externally (e.g. browser back/forward)
   useEffect(() => {
@@ -94,9 +106,7 @@ export function App({ folders }: { folders: boolean }) {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  const handleTabChange = useCallback((id: string) => {
-    const nextTab = tabFrom(id, "pile");
-    setTab(nextTab);
+  const syncUrlTab = useCallback((nextTab: TabId) => {
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       url.searchParams.set("tab", nextTab);
@@ -104,66 +114,147 @@ export function App({ folders }: { folders: boolean }) {
     }
   }, []);
 
-  const handleInspect = useCallback((rawSeed: string) => {
-    const seed = normalizeSeed(rawSeed);
-    if (seed === null) return;
-    const seedDisplay = seed === "" ? '""' : seed;
-    setOpened({
-      name: `Seed: ${seedDisplay}`,
-      yaml: `seeds:\n  - ${JSON.stringify(seed)}\n${STARTER_JAML}`,
-    });
-    setTab("lab");
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", "lab");
-      url.searchParams.set("seed", seed);
-      window.history.pushState({}, "", url);
-    }
-  }, []);
+  const handleTabChange = useCallback(
+    (id: string) => {
+      const nextTab = tabFrom(id, "pile");
+      setTab(nextTab);
+      syncUrlTab(nextTab);
+    },
+    [syncUrlTab],
+  );
+
+  const handleOpenFilter = useCallback(
+    (filter: OpenedFilter) => {
+      setOpened(filter);
+      setOpenedSeq((n) => n + 1);
+      setTab("lab");
+      syncUrlTab("lab");
+    },
+    [syncUrlTab],
+  );
+
+  const handleInspectSeeds = useCallback(
+    (pile: { seeds: string[]; deck: string; stake: string; label: string }) => {
+      setIncomingPile({
+        key: Date.now(),
+        seeds: pile.seeds,
+        deck: pile.deck,
+        stake: pile.stake,
+      });
+      setTab("pile");
+      syncUrlTab("pile");
+    },
+    [syncUrlTab],
+  );
+
+  const handleOpenAgentSeeds = useCallback(
+    (seeds: string[]) => {
+      if (seeds.length === 0) return;
+      setIncomingPile({
+        key: Date.now(),
+        seeds,
+      });
+      setTab("pile");
+      syncUrlTab("pile");
+    },
+    [syncUrlTab],
+  );
+
+  const handleInspectInLab = useCallback(
+    (rawSeed: string, deck = "Red", stake = "White") => {
+      const seed = normalizeSeed(rawSeed);
+      if (seed === null) return;
+      const seedDisplay = seed === "" ? '""' : seed;
+      setOpened({
+        name: `Seed: ${seedDisplay}`,
+        yaml: buildSeedLabYaml(seed, deck, stake, STARTER_JAML),
+      });
+      setOpenedSeq((n) => n + 1);
+      setTab("lab");
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", "lab");
+        url.searchParams.set("seed", seed);
+        window.history.pushState({}, "", url);
+      }
+    },
+    [],
+  );
 
   // WebMCP tools are registered for as long as the lab is mounted; the badge says an
   // in-page agent (native WebMCP) can drive seed_validate / seed_search directly.
   const agentReady = useSeedLabWebMCP();
 
+  const tabs = [
+    { id: "pile", label: "Seed Pile" },
+    { id: "filters", label: "Filters" },
+    { id: "lab", label: "Seed Lab" },
+    { id: "agent", label: "SIMD Ripper" },
+  ];
+
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", paddingBottom: 48 }}>
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", paddingBottom: 72 }}>
       <JimboBackground />
-      <JimboApp variant="page" style={{ flex: 1 }}>
+      <JimboApp
+        variant="page"
+        style={{ flex: 1, minHeight: "auto", gridTemplateRows: "auto auto 1fr", alignContent: "start" }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
-          <JimboWordmark title="Motely" sub="Balatro seed search, in your browser, at full speed" />
+          <JimboWordmark title="Motely" sub="Balatro seed search — WASM in-browser & Motely.MCP SIMD Ripper" />
           {agentReady ? (
             <JimboBadge
               size="sm"
               tone="grey"
               title="WebMCP ready: this page exposes seed_validate and seed_search to in-page agents"
             >
-              🃏 agent-ready
+              agent-ready
             </JimboBadge>
           ) : null}
         </div>
-        <JimboTabs
-          tabs={[
-            { id: "pile", label: "Seed Pile" },
-            { id: "lab", label: "Seed Lab" },
-            { id: "agent", label: "Server Agent" },
-          ]}
-          activeTab={tab}
-          onTabChange={handleTabChange}
-        />
+        <JimboTabs tabs={tabs} activeTab={tab} onTabChange={handleTabChange} />
         {tab === "pile" ? (
-          <SeedPile />
+          <SeedPile incomingPile={incomingPile} onInspectInLab={handleInspectInLab} />
+        ) : tab === "filters" ? (
+          <Suspense
+            fallback={
+              <JimboPanel>
+                <JimboText size="sm" tone="grey">
+                  Loading Filter Library...
+                </JimboText>
+              </JimboPanel>
+            }
+          >
+            <FilterLibrary onOpenInLab={handleOpenFilter} onInspectSeeds={handleInspectSeeds} />
+          </Suspense>
         ) : tab === "agent" ? (
-          <AgentPanel onInspect={handleInspect} initialInput={agentInput} />
+          <Suspense
+            fallback={
+              <JimboPanel>
+                <JimboText size="sm" tone="grey">
+                  Loading SIMD Ripper...
+                </JimboText>
+              </JimboPanel>
+            }
+          >
+            <AgentPanel
+              onInspect={handleInspectInLab}
+              onOpenPile={handleOpenAgentSeeds}
+              initialInput={agentInput}
+            />
+          </Suspense>
         ) : (
           <>
             {folders ? <FilterFolder opened={opened} onOpen={setOpened} /> : null}
             {/* Opening a filter remounts the lab with that text: a new filter is a new search. */}
-            <SeedLab key={opened?.name ?? "starter"} defaultJaml={opened?.yaml ?? STARTER_JAML} />
+            <SeedLab
+              key={`${opened?.name ?? "starter"}:${openedSeq}`}
+              defaultJaml={opened?.yaml ?? STARTER_JAML}
+            />
           </>
         )}
       </JimboApp>
       {/* Pinned to the viewport bottom, like Balatro's page chrome — content scrolls under
-          the 48px of padding above, so nothing ever hides behind it. */}
+          the 72px of padding above, so nothing ever hides behind it. */}
       <JimboBalatroFooter style={{ position: "fixed", bottom: 0, left: 0, right: 0, marginTop: 0 }} />
     </div>
   );

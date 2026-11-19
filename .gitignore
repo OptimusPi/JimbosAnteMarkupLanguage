@@ -30,10 +30,9 @@ node_modules/
 npm-debug.log*
 yarn-error.log
 pnpm-debug.log*
-# A root or user .npmrc can hold a token; the project .npmrc files only map @rewaffle and are tracked.
+# A root or user .npmrc can hold a token; Motely.Wasm/.npmrc only maps @rewaffle and is tracked.
 .npmrc
 !Motely.Wasm/.npmrc
-!Motely.Web/.npmrc
 # Vite build output (npm run build).
 /Motely.Web/dist/
 
@@ -73,3 +72,4 @@ nuget.config.local
 # Source snapshots and CLI output redirected into the tree by accident.
 /*.zip
 /Filters/*.csv
+/.aistudio

@@ -137,3 +137,34 @@ export function spot(result: MotelyJamlyzerSeedResult, watch: readonly string[])
   }
   return found;
 }
+
+/** Number of additional shop cards rolled per infinite-scroll page. */
+export const DEFAULT_SHOP_PAGE_SIZE = 50;
+
+/**
+ * Merges a resumed shop window (`MotelyJamlyzer.resume(config, prev.streamStates, 0, pageSize)`)
+ * onto an existing seed result. Each ante's newly rolled `shopItems` are appended in order and
+ * `streamStates` advances to the resumed cursor so the next page continues in O(pageSize) with
+ * zero re-rolling and zero skipped or duplicated slots.
+ */
+export function mergeResumedShopWindow(
+  prev: MotelyJamlyzerSeedResult,
+  resumed: MotelyJamlyzerSeedResult,
+): MotelyJamlyzerSeedResult {
+  const resumedByAnte = new Map(resumed.antes.map((ante) => [ante.ante, ante]));
+  const mergedAntes = prev.antes.map((ante) => {
+    const next = resumedByAnte.get(ante.ante);
+    if (!next || next.shopItems.length === 0) return ante;
+    return {
+      ...ante,
+      shopItems: [...ante.shopItems, ...next.shopItems],
+    };
+  });
+
+  return {
+    ...prev,
+    antes: mergedAntes,
+    streamStates: resumed.streamStates,
+  };
+}
+

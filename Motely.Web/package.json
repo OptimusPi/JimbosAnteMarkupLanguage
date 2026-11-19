@@ -1,19 +1,19 @@
 {
   "name": "motely-web",
-  "version": "31.1.1",
+  "version": "32.1.0",
   "private": true,
-  "description": "The Motely seed lab: jaml-ui's SeedLab on motely-wasm, served by Aspire.",
+  "description": "The Motely seed lab: Balatro seed pile, filter library, and SeedLab on motely-wasm.",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/seed-pile-check.mjs && node scripts/webmcp-smoke.mjs && node --test src/agui.test.ts src/filterLibrary.test.ts"
   },
   "dependencies": {
-    "@rewaffle/bootsharp-file-system": "2026.5.201827",
-    "jaml-ui": "^9.1.1",
-    "motely-wasm": "^31.2.0",
+    "jaml-ui": "^9.2.0",
+    "motely-wasm": "^32.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

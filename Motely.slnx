@@ -1,12 +1,18 @@
 <Solution>
   <Folder Name="/Motely.Web/">
+    <File Path="Motely.Web/index.html" />
     <File Path="Motely.Web/package.json" />
     <File Path="Motely.Web/vite.config.ts" />
     <File Path="Motely.Web/src/AgentPanel.tsx" />
     <File Path="Motely.Web/src/agui.ts" />
     <File Path="Motely.Web/src/App.tsx" />
     <File Path="Motely.Web/src/FilterFolder.tsx" />
+    <File Path="Motely.Web/src/FilterLibrary.tsx" />
+    <File Path="Motely.Web/src/filterLibrary.ts" />
+    <File Path="Motely.Web/src/InfiniteJamlyzerView.tsx" />
     <File Path="Motely.Web/src/main.tsx" />
+    <File Path="Motely.Web/src/SeedPile.tsx" />
+    <File Path="Motely.Web/src/seedPile.ts" />
     <File Path="Motely.Web/src/webmcp.ts" />
     <File Path="Motely.Web/src/webmcp-tools.ts" />
   </Folder>

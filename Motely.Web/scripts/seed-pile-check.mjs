@@ -84,5 +84,36 @@ assert.equal(analyze("NULL", "Red", "White")[0].seed, "NULL");
 assert.notEqual(analyzeRequest("ALEEB", "Ghost", "White"), analyzeRequest("ALEEB", "Red", "White"));
 assert.equal(analyze("ALEEB", "Ghost", "Black")[0].seed, "ALEEB");
 
-console.log("seed pile: pasted piles read, requests analyze on the real engine, watched names are spotted");
+// ── Infinite shop scrolling: exact mathematical parity with single-pass walk ──
+const { mergeResumedShopWindow } = await import("../src/seedPile.ts");
+const aleebConfig = JamlConfigLoader.fromJaml(analyzeRequest("ALEEB", "Red", "White"));
+const page1 = MotelyJamlyzer.resume(aleebConfig, aleeb.streamStates, 0, 50)[0];
+const afterPage1 = mergeResumedShopWindow(aleeb, page1);
+const page2 = MotelyJamlyzer.resume(aleebConfig, afterPage1.streamStates, 0, 50)[0];
+const afterPage2 = mergeResumedShopWindow(afterPage1, page2);
+
+// Ante 1 default is 15 slots -> +50 -> 65 -> +50 -> 115 slots.
+// Ante 2 default is 50 slots -> +50 -> 100 -> +50 -> 150 slots.
+const ante1Resumed = afterPage2.antes.find((a) => a.ante === 1);
+const ante2Resumed = afterPage2.antes.find((a) => a.ante === 2);
+assert.equal(ante1Resumed.shopItems.length, 115, "Ante 1 grew 15 -> 65 -> 115 slots");
+assert.equal(ante2Resumed.shopItems.length, 150, "Ante 2 grew 50 -> 100 -> 150 slots");
+
+// Compare item-for-item against a single-pass walk of the exact same depth.
+const singlePass115 = MotelyJamlyzer.analyze(aleebConfig, 0, 115)[0].antes.find((a) => a.ante === 1);
+const singlePass150 = MotelyJamlyzer.analyze(aleebConfig, 0, 150)[0].antes.find((a) => a.ante === 2);
+assert.deepEqual(
+  ante1Resumed.shopItems.map((x) => [x.type, x.edition, x.isEternal, x.isPerishable, x.isRental]),
+  singlePass115.shopItems.map((x) => [x.type, x.edition, x.isEternal, x.isPerishable, x.isRental]),
+  "Resumed Ante 1 infinite shop matches single-pass 115-slot walk item-for-item",
+);
+assert.deepEqual(
+  ante2Resumed.shopItems.map((x) => [x.type, x.edition, x.isEternal, x.isPerishable, x.isRental]),
+  singlePass150.shopItems.map((x) => [x.type, x.edition, x.isEternal, x.isPerishable, x.isRental]),
+  "Resumed Ante 2 infinite shop matches single-pass 150-slot walk item-for-item",
+);
+
+console.log(
+  "seed pile: pasted piles read, requests analyze on the real engine, watched names spotted, infinite shop resume verified item-for-item",
+);
 process.exit(0);

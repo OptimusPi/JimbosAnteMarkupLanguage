@@ -1,4 +1,4 @@
-﻿==ANTE 0==
+==ANTE 0==
 Boss: ThePillar
 Voucher: Telescope
 Tags: HolographicTag, JuggleTag

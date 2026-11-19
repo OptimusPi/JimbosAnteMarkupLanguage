@@ -9,8 +9,7 @@ Balatro seed search. You write a filter in JAML (YAML-shaped), and a SIMD engine
 | `Motely.Tests` | The test suite |
 | `Motely.Wasm` | Browser build via WebAssembly |
 | `Motely.Web` | The seed lab, a web app on `motely-wasm` and `jaml-ui` |
-| `vscode-jaml` | The JAML extension for VS Code, as a packaged `.vsix` |
-| `Filters/` | Filter files |
+| `Filters/` | Canonical filter library (used by `--jaml <name>` and `Motely.Web`; `Motely.Tests/JamlFilters/` holds frozen test fixtures) |
 | `docs/` | Release notes |
 
 ## Filters
@@ -87,26 +86,27 @@ Exit codes: `0` finished, `1` bad input or a `--save` that could not write, `130
 |---|---|
 | *(none)* | Sequential sweep of every seed. Resume with `--startBatch`/`--startSeed`/`--startPercent`, end with `--endBatch`/`--stopSeed`. `--batchCharCount` sets how many trailing characters one batch sweeps (default 3) |
 | `--seeds A1B2C3D4,E5F6G7H8` | Exactly these seeds |
-| `--seeds file.csv` | Every seed in a file: one per line, first column. A motely CSV, a plain list, or a spreadsheet export all work. Repeats run once, and bad lines are warned about and skipped. Up to 65,536 seeds print in file order; a longer list is split across the threads and prints as found |
+| `--seeds file.csv` | Every seed in a file: one per line, first column. Plain lists, motely CSVs, spreadsheet exports, `.parquet`/`.pq`, `.duckdb`/`.db`/`.sqlite`, and remote `https://` or `s3://` Parquet URLs (streamed via DuckDB) all work. Up to 65,536 text seeds print in file order; longer lists split across threads |
 | `--seeds -` | Seeds read from stdin |
 | `--replay` | The filter file's own `seeds:` block |
 | `--keyword WORD` / `--keywords A,B` | Seeds that contain the word(s). `--padding` names the characters that fill the other slots (default: all of 1-9 and A-Z) |
 | `--random N` | N random seeds |
 | `--aesthetic NAME\|all` | Pattern families such as palindromes |
 
-**Other options:** `--deck`, `--stake` (override the filter's values), `--threads`, `--collect N` (stop after N matches), `--cutoff N|auto|max|off`, `--save` (merge the printed seeds into the filter's `seeds:` block), `-q`.
+**Other options:** `--deck`, `--stake` (override the filter's values), `--threads`, `--collect N` (stop after N matches), `--cutoff N|auto|max|off`, `--save` (merge the top seeds into the filter's `seeds:` block), `--save-limit N` (cap saved seeds; default 2000, 0 = unlimited), `--out <file.duckdb|file.parquet>` (stream matches into DuckDB or ZSTD Parquet), `--jamlyze` (with `--out`, store the scoped Jamlyzer JSON window per match), `-q`.
 
 **Cutoff.** `--cutoff N` prints seeds that score at least N. `auto`, the default, prints every match until finds flood in, then only seeds that tie or beat the best score so far. `max` prints only a seed that beats every score before it; with more than one thread the order seeds finish in changes from run to run, so its rows can too (`--threads 1` repeats). `off` prints every match. A filter's own top-level `cutoff: N` is the floor when the flag is not given. Only `should` clauses score, so a filter without them scores every seed 0: a cutoff above zero prints nothing, and `max` prints the first match and stops.
 
 ### Researching a pile of seeds
 
-There is no database. A seed list is just a file, and replaying one takes milliseconds, so keep the CSVs and re-run filters over them:
+A seed list can be a plain CSV, a `.parquet` file, or a `.duckdb` file, and replaying one takes milliseconds, so keep your finds and re-run filters over them:
 
 ```sh
-motely --jaml longColaDanker --cutoff off > pile.csv       # collect (Ctrl+C whenever)
-motely --jaml otherFilter --seeds pile.csv --cutoff off    # re-score the pile with another filter
-motely --jaml a --seeds pile.csv -q | motely --jaml b --seeds - -q   # chain filters
-motely --jaml longColaDanker --seeds pile.csv --save       # keep the winners in the filter
+motely --jaml longColaDanker --cutoff off > pile.csv                       # collect CSV (Ctrl+C whenever)
+motely --jaml longColaDanker --cutoff off --out finds.parquet --jamlyze    # or stream directly to ZSTD Parquet + Jamlyzer JSON
+motely --jaml otherFilter --seeds finds.parquet --cutoff off               # re-score a CSV, Parquet, or DuckDB pile
+motely --jaml a --seeds pile.csv -q | motely --jaml b --seeds - -q         # chain filters
+motely --jaml longColaDanker --seeds pile.csv --save                       # keep the winners in the filter
 ```
 
 ## Build and test

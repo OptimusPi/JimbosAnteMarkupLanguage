@@ -1,0 +1,20 @@
+{
+  "name": "motely-workspace",
+  "private": true,
+  "workspaces": [
+    "Motely.Web"
+  ],
+  "overrides": {
+    "jaml-ui": {
+      "motely-wasm": "$motely-wasm"
+    }
+  },
+  "scripts": {
+    "dev": "npm --prefix Motely.Web run dev",
+    "build": "npm --prefix Motely.Web run build",
+    "preview": "npm --prefix Motely.Web run preview",
+    "lint": "npm --prefix Motely.Web run typecheck",
+    "typecheck": "npm --prefix Motely.Web run typecheck",
+    "test": "npm --prefix Motely.Web run test"
+  }
+}

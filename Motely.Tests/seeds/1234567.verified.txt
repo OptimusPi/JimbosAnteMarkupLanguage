@@ -1,4 +1,4 @@
-﻿==ANTE 0==
+==ANTE 0==
 Boss: ThePsychic
 Voucher: PaintBrush
 Tags: FoilTag, HolographicTag

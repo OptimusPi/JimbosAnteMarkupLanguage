@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DeckStakePicker,
-  JamlyzerView,
   JimboBadge,
   JimboButton,
   JimboPanel,
@@ -17,7 +16,16 @@ import {
   MotelyStake,
   type MotelyJamlyzerSeedResult,
 } from "motely-wasm";
-import { analyzeRequest, seedsIn, spot, watchNames } from "./seedPile.js";
+import { STARTER_PILES, type StarterPile } from "./filterLibrary.js";
+import { InfiniteJamlyzerView } from "./InfiniteJamlyzerView.js";
+import {
+  analyzeRequest,
+  DEFAULT_SHOP_PAGE_SIZE,
+  mergeResumedShopWindow,
+  seedsIn,
+  spot,
+  watchNames,
+} from "./seedPile.js";
 
 const PILE_KEY = "motely.seedPile";
 const PLACE_KEY = "motely.seedPile.place";
@@ -54,12 +62,25 @@ function analyze(seed: string, deck: string, stake: string): Analyzed {
   }
 }
 
+export interface IncomingPile {
+  key: number;
+  seeds: string[];
+  deck?: string;
+  stake?: string;
+  watch?: string;
+}
+
+export interface SeedPileProps {
+  incomingPile?: IncomingPile | null;
+  onInspectInLab?: (seed: string, deck: string, stake: string) => void;
+}
+
 /**
- * Paste a pile of seeds, then step through them one at a time: arrow keys, a swipe, or the
- * Previous and Next bar pinned at the bottom. Deck and stake flip on the seed in front of you,
- * and the names on the watch list are called out wherever they turn up. Nothing to write.
+ * Paste a pile of seeds (or pick a starter pile), then step through them one at a time: arrow
+ * keys, a swipe, or the Previous and Next bar pinned at the bottom. Deck and stake flip on the
+ * seed in front of you, and the names on the watch list are called out wherever they turn up.
  */
-export function SeedPile() {
+export function SeedPile({ incomingPile, onInspectInLab }: SeedPileProps = {}) {
   const [seeds, setSeeds] = useState<string[]>(() => seedsIn(remembered(PILE_KEY) ?? ""));
   // Your place in the pile survives a reload: a thousand seeds in, a refresh should not start over.
   const [index, setIndex] = useState(() => Number.parseInt(remembered(PLACE_KEY) ?? "0", 10) || 0);
@@ -79,13 +100,47 @@ export function SeedPile() {
     [count],
   );
 
-  const takePile = useCallback((pile: string[]) => {
-    setSeeds(pile);
-    setIndex(0);
-    setPasting(false);
-    setDraft(pile.join("\n"));
-    remember(PILE_KEY, pile.join("\n"));
-  }, []);
+  const takePile = useCallback(
+    (pile: string[], opts?: { deck?: string; stake?: string; watch?: string }) => {
+      setSeeds(pile);
+      setIndex(0);
+      setPasting(false);
+      setDraft(pile.join("\n"));
+      remember(PILE_KEY, pile.join("\n"));
+      if (opts?.deck && opts.deck in MotelyDeck) setDeck(opts.deck);
+      if (opts?.stake && opts.stake in MotelyStake) setStake(opts.stake);
+      if (opts?.watch !== undefined) {
+        setWatchText(opts.watch);
+        remember(WATCH_KEY, opts.watch);
+      }
+    },
+    [],
+  );
+
+  const loadStarter = useCallback(
+    (starter: StarterPile) => {
+      takePile([...starter.seeds], {
+        deck: starter.deck,
+        stake: starter.stake,
+        watch: starter.watch,
+      });
+    },
+    [takePile],
+  );
+
+  // Accept piles sent over from the Filter Library ("Inspect N Seeds").
+  const lastIncomingKey = useRef<number | null>(null);
+  useEffect(() => {
+    if (!incomingPile || incomingPile.key === lastIncomingKey.current) return;
+    lastIncomingKey.current = incomingPile.key;
+    if (incomingPile.seeds.length > 0) {
+      takePile(incomingPile.seeds, {
+        deck: incomingPile.deck,
+        stake: incomingPile.stake,
+        watch: incomingPile.watch,
+      });
+    }
+  }, [incomingPile, takePile]);
 
   // Arrow keys step unless you are typing in a field. Home and End jump to the ends.
   useEffect(() => {
@@ -132,8 +187,47 @@ export function SeedPile() {
     [step],
   );
 
-  const analyzed = useMemo(() => (seed === null ? null : analyze(seed, deck, stake)), [seed, deck, stake]);
+  const baseAnalyzed = useMemo(() => (seed === null ? null : analyze(seed, deck, stake)), [seed, deck, stake]);
+  const [extended, setExtended] = useState<{ key: string; result: MotelyJamlyzerSeedResult } | null>(null);
+  const seedKey = seed === null ? "" : `${seed}|${deck}|${stake}`;
+  const analyzed: Analyzed | null =
+    extended && extended.key === seedKey ? { result: extended.result } : baseAnalyzed;
+
+  const resumingRef = useRef(false);
+  const loadMoreShop = useCallback(
+    (pageSize = DEFAULT_SHOP_PAGE_SIZE) => {
+      if (resumingRef.current || seed === null) return;
+      const current =
+        extended && extended.key === seedKey
+          ? extended.result
+          : baseAnalyzed && "result" in baseAnalyzed
+            ? baseAnalyzed.result
+            : null;
+      if (!current) return;
+      resumingRef.current = true;
+      try {
+        const config = JamlConfigLoader.fromJaml(analyzeRequest(seed, deck, stake));
+        const resumed = MotelyJamlyzer.resume(config, current.streamStates, 0, pageSize);
+        if (resumed.length > 0) {
+          setExtended({
+            key: seedKey,
+            result: mergeResumedShopWindow(current, resumed[0]),
+          });
+        }
+      } catch {
+        // Keep the existing shop items intact if resume fails.
+      } finally {
+        resumingRef.current = false;
+      }
+    },
+    [seed, deck, stake, seedKey, extended, baseAnalyzed],
+  );
+
   const watch = useMemo(() => watchNames(watchText), [watchText]);
+  const watchedKeys = useMemo(
+    () => new Set(watch.map((w) => w.toLowerCase().replace(/[^a-z0-9]/g, "")).filter(Boolean)),
+    [watch],
+  );
   const spotted = useMemo(
     () => (analyzed !== null && "result" in analyzed ? spot(analyzed.result, watch) : []),
     [analyzed, watch],
@@ -146,13 +240,29 @@ export function SeedPile() {
     return (
       <JimboPanel title="Seed Pile">
         <JimboText size="sm" tone="grey">
-          Paste seeds here: one per line, a row of them, or a Motely results file. Then step through them.
+          Paste seeds here (one per line, a row, or a Motely CSV), or load a starter pile below to
+          inspect shops, packs, vouchers, and tags instantly.
         </JimboText>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.4rem" }}>
+          <JimboText size="xs" tone="gold">
+            Quick start:
+          </JimboText>
+          {STARTER_PILES.map((starter) => (
+            <JimboButton
+              key={starter.id}
+              tone="blue"
+              size="sm"
+              title={starter.subtitle}
+              onClick={() => loadStarter(starter)}
+            >
+              {starter.label}
+            </JimboButton>
+          ))}
+        </div>
         <JimboTextArea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          rows={8}
-          autoFocus
+          rows={5}
           spellCheck={false}
           autoCapitalize="characters"
           aria-label="Seeds to step through"
@@ -181,11 +291,16 @@ export function SeedPile() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
       <JimboPanel>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.6rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem" }}>
           <JimboText size="lg" tone="gold" aria-live="polite">
             Seed {(at + 1).toLocaleString()} of {count.toLocaleString()}
           </JimboText>
           <JimboSeedCopyChip value={seed ?? ""} style={{ flex: "1 1 12rem", minWidth: "10rem" }} />
+          {onInspectInLab && seed ? (
+            <JimboButton tone="orange" size="sm" onClick={() => onInspectInLab(seed, deck, stake)}>
+              Open in Lab
+            </JimboButton>
+          ) : null}
           <JimboButton tone="blue" size="sm" onClick={() => setPasting(true)}>
             New Pile
           </JimboButton>
@@ -223,10 +338,13 @@ export function SeedPile() {
         {analyzed === null ? null : "error" in analyzed ? (
           <JimboErrorBlock>{analyzed.error}</JimboErrorBlock>
         ) : (
-          <JamlyzerView
+          <InfiniteJamlyzerView
+            key={seedKey}
             result={analyzed.result}
             deck={MotelyDeck[deck as keyof typeof MotelyDeck]}
             stake={MotelyStake[stake as keyof typeof MotelyStake]}
+            watchedKeys={watchedKeys}
+            onLoadMoreShop={loadMoreShop}
           />
         )}
       </div>

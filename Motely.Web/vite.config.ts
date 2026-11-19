@@ -1,11 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Aspire hands the port in through PORT.
-//
-// /agui is proxied to the MCP server so the agent panel calls same-origin and CORS never comes
-// into it. Under Aspire the server's URL arrives as service discovery config; standalone it is
-// the launch profile's port. MOTELY_MCP_URL overrides both.
+// In production, Motely.MCP can serve Motely.Web/dist directly (same-origin /agui & /mcp).
+// In dev, Vite proxies /agui and /mcp to your local Motely.MCP instance (default :5200).
 const mcpUrl =
   process.env.services__mcp__http__0 ?? process.env.MOTELY_MCP_URL ?? "http://localhost:5200";
 
@@ -19,13 +16,30 @@ export default defineConfig({
   // ships, the sheets load.
   optimizeDeps: { exclude: ["jaml-ui"] },
   server: {
-    port: Number(process.env.PORT) || 5173,
+    host: "0.0.0.0",
+    port: Number(process.env.PORT) || 3000,
     strictPort: true,
-    proxy: { "/agui": { target: mcpUrl } },
+    allowedHosts: true,
+    fs: { allow: [".."] },
+    proxy: {
+      "/agui": { target: mcpUrl },
+      "/mcp": { target: mcpUrl },
+    },
   },
   build: {
     target: "esnext",
     // .NET's JavaScript probes for Node modules it never uses in a browser.
-    rollupOptions: { external: ["process", "module"] },
+    rollupOptions: {
+      external: ["process", "module"],
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/motely-wasm")) return "motely-wasm";
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+            return "react-vendor";
+          }
+          return undefined;
+        },
+      },
+    },
   },
 });

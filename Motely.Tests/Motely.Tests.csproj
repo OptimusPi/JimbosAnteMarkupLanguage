@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Motely/Motely.csproj" />
-    <!-- PartyWorkerTests drives the Search Party worker (Motely.CLI/Party) against a fake coordinator. -->
+    <!-- Referenced by CliProcessTests and DuckDbPersistenceTests. -->
     <ProjectReference Include="../Motely.CLI/Motely.CLI.csproj" />
   </ItemGroup>
 
