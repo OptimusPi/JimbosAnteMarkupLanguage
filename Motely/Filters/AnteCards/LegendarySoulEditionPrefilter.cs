@@ -18,8 +18,10 @@ internal static class LegendarySoulEditionPrefilter
         int n = maxSlot >= 0 || sources.TagPacks.Length > 0
             ? maxSlot + 1 + sources.TagPacks.Length
             : 6;
+        // soulEditionRolls, when written, is exactly how many Souls per ante get read:
+        // 1 peeks at the first Soul only, a higher number finds packs holding two Souls.
         if (clause.SoulEditionRolls > 0)
-            n = Math.Max(n, clause.SoulEditionRolls);
+            n = clause.SoulEditionRolls;
         return n;
     }
 

@@ -51,9 +51,9 @@ public sealed partial class LegendaryJokerClause: MotelyClause,IAnteScopedClause
     public bool SoulCardOnly { get; set; }
 
     /// <summary>
-    /// Extra soul-stream edition reads per ante for the fast edition vector prefilter (0 = use
-    /// <see cref="LegendaryJokerSourceConfig.BoosterPacks"/> length). Raise when rare multi-soul antes
-    /// could otherwise false-negative the prefilter.
+    /// How many Souls per ante the fast edition vector prefilter reads (0 = one per referenced
+    /// pack slot and tag pack). When written it is exact: 1 peeks at the first Soul only, and a
+    /// higher number finds packs that hold two Souls.
     /// </summary>
     public int SoulEditionRolls { get; set; }
 
