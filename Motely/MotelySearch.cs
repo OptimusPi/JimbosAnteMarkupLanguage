@@ -1933,16 +1933,26 @@ public sealed unsafe partial class MotelySearch<TBaseFilter> : IInternalMotelySe
         }
 
         /// <summary>
-        /// End of a search batch: Auto engages when this batch's raw matches cover the
-        /// batch (matches &gt;= seeds searched this batch). Then persist sinks flush.
+        /// Auto engages once matches are "flooding in": at least 10% of this batch's seeds
+        /// matched, or an absolute floor of 64 matches in one batch. Below that, every match
+        /// prints (like off). Once engaged, the running-maximum clamp stays on for the run
+        /// (one-way ratchet, matching the documented auto contract).
         /// </summary>
+        private const double AutoEngageMatchRate = 0.10;
+        private const long AutoEngageMinMatches = 64;
+
         private void OnBatchDone()
         {
             if (Search._autoScoreCutoff)
             {
                 long batchMatches = _autoCutoffState.RawMatches - _autoCutoffState.LastGateRawMatches;
                 long batchSeeds = _localSeedsSearched - _autoCutoffState.LastGateSeeds;
-                _autoCutoffState.Engaged = batchSeeds > 0 && batchMatches >= batchSeeds;
+                if (!_autoCutoffState.Engaged && batchSeeds > 0)
+                {
+                    _autoCutoffState.Engaged =
+                        (double)batchMatches / batchSeeds >= AutoEngageMatchRate
+                        || batchMatches >= AutoEngageMinMatches;
+                }
                 _autoCutoffState.LastGateRawMatches = _autoCutoffState.RawMatches;
                 _autoCutoffState.LastGateSeeds = _localSeedsSearched;
             }

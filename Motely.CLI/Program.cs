@@ -42,7 +42,7 @@ Option<MotelyStake?> stakeOption = new("--stake")
 {
     Description = "Replaces the filter's stake.",
 };
-Option<int?> threadsOption = new("--threads") { Description = "Worker threads (default: every core)." };
+Option<int?> threadsOption = new("--threads", "-t") { Description = "Worker threads (default: every core)." };
 Option<string> seedsOption = new("--seeds")
 {
     Description = "Search exactly these seeds: comma-separated, a seed file (first column; a motely CSV works), or - for stdin.",
@@ -81,7 +81,7 @@ Option<string> stopSeedOption = new("--stopSeed")
 {
     Description = "Sequential: end after the batch holding this seed.",
 };
-Option<int?> collectOption = new("--collect")
+Option<int?> collectOption = new("--collect", "-c")
 {
     Description = "Stop after N matches. Each thread finishes the batch it is in, so more than N can print.",
 };
@@ -90,7 +90,7 @@ Option<string> cutoffOption = new("--cutoff")
     Description =
         "A score: print only seeds scoring at least that. 'auto' (default): every match prints until finds flood in, then only seeds that tie or beat the best score so far. 'max': only seeds that beat every score before them, across all threads. 'off': every match prints. Overrides the filter's own root 'cutoff:' key.",
 };
-Option<bool> saveOption = new("--save")
+Option<bool> saveOption = new("--save", "-s")
 {
     Description = "Merge the top seeds into the filter file's seeds: block (its existing seeds stay first).",
 };
@@ -476,7 +476,19 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
         try
         {
             if (MotelyTopSeedSink.TryRewriteAndValidate(File.ReadAllText(path), seeds, out var updated, out saveError))
-                File.WriteAllText(path, updated);
+            {
+                string tmp = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".", Path.GetRandomFileName());
+                try
+                {
+                    File.WriteAllText(tmp, updated);
+                    File.Move(tmp, path, overwrite: true);
+                }
+                finally
+                {
+                    if (File.Exists(tmp))
+                        File.Delete(tmp);
+                }
+            }
         }
         // A read-only or locked filter must not cost the run its summary and resume line.
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
