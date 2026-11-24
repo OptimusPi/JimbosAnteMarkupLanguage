@@ -11,8 +11,6 @@
     <ProjectReference Include="../Motely/Motely.csproj" />
     <!-- Referenced by CliProcessTests and DuckDbPersistenceTests. -->
     <ProjectReference Include="../Motely.CLI/Motely.CLI.csproj" />
-    <!-- McpServerAcceptanceTests drive the MCP server's engine bridge. -->
-    <ProjectReference Include="../Motely.Mcp/Motely.Mcp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
