@@ -1,11 +1,12 @@
 name: WhimsyDicetrick
-author: for pi — Perkeo + Showman + NegativeTag + stacked Oops/copy core + lucky ladder
+author: for pi — Perkeo + Showman + NegativeTag + Lucky Cat + Ankh + Oops party
 description: >
-  An Anaglyph party: Perkeo early, Showman early so Oops! All 6s can stack,
-  at least two Negative skip tags, and Oops in the post-skip shop window.
-  Big scores go to the Oops-in-first-pack / Ankh-in-second-pack duplicate path,
-  a NegativeTag with Oops in the same ante's shop, an early Lucky Cat, and the
-  lucky hit ladders (money and mult, 8 to 1). The seeds below are the hunt list.
+  An Anaglyph hunt for a pile of Oops! All 6s and an early Lucky Cat. Perkeo and
+  Showman early, at least two Negative skip tags, and Oops in the post-skip shop
+  window. Big scores go to the Oops-in-first-pack / Ankh-in-second-pack duplicate
+  path, a NegativeTag with Oops in the same ante's shop, early cats, the stacked
+  Oops jackpot, and the lucky hit ladders (money and mult, 8 to 1). The seeds
+  below are the hunt list.
 deck: Anaglyph
 stake: White
 
@@ -21,108 +22,122 @@ must:
       shopItems: [2, 3, 4, 5, 6, 7, 8]
   - joker: Showman
     antes: [1, 2, 3, 4]
+  # The star of the party: find the cat early, in a shop or a Buffoon pack.
+  - joker: LuckyCat
+    antes: [1, 2, 3, 4]
+    sources:
+      shopItems: [0, 1, 2, 3, 4, 5, 6, 7]
+      boosterPacks: [0, 1, 2, 3, 4, 5]
 
 should:
   # The Ankh copy trick: Oops in the first pack, Ankh in the second, same ante.
   # `mode: max` keeps the trick to one score even when several antes offer it.
   - or:
-      mode: max
-      clauses:
-        - and:
-            - joker: OopsAll6s
-              antes: [1]
-              sources: { boosterPacks: [0] }
-            - spectralCard: Ankh
-              antes: [1]
-              sources: { boosterPacks: [1] }
-        - and:
-            - joker: OopsAll6s
-              antes: [2]
-              sources: { boosterPacks: [0] }
-            - spectralCard: Ankh
-              antes: [2]
-              sources: { boosterPacks: [1] }
-        - and:
-            - joker: OopsAll6s
-              antes: [3]
-              sources: { boosterPacks: [0] }
-            - spectralCard: Ankh
-              antes: [3]
-              sources: { boosterPacks: [1] }
+      - and:
+          - joker: OopsAll6s
+            antes: [1]
+            sources: { boosterPacks: [0] }
+          - spectralCard: Ankh
+            antes: [1]
+            sources: { boosterPacks: [1] }
+      - and:
+          - joker: OopsAll6s
+            antes: [2]
+            sources: { boosterPacks: [0] }
+          - spectralCard: Ankh
+            antes: [2]
+            sources: { boosterPacks: [1] }
+      - and:
+          - joker: OopsAll6s
+            antes: [3]
+            sources: { boosterPacks: [0] }
+          - spectralCard: Ankh
+            antes: [3]
+            sources: { boosterPacks: [1] }
+    mode: max
     score: 180
     label: ankh_double_oops
 
   # Skip into the Negative Tag, then find Oops in that same ante's shop.
   - or:
-      mode: max
-      clauses:
-        - and:
-            - smallBlindTag: NegativeTag
-              antes: [2]
-            - joker: OopsAll6s
-              antes: [2]
-              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-        - and:
-            - smallBlindTag: NegativeTag
-              antes: [3]
-            - joker: OopsAll6s
-              antes: [3]
-              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-        - and:
-            - smallBlindTag: NegativeTag
-              antes: [4]
-            - joker: OopsAll6s
-              antes: [4]
-              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-        - and:
-            - smallBlindTag: NegativeTag
-              antes: [5]
-            - joker: OopsAll6s
-              antes: [5]
-              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-        - and:
-            - smallBlindTag: NegativeTag
-              antes: [6]
-            - joker: OopsAll6s
-              antes: [6]
-              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-        - and:
-            - smallBlindTag: NegativeTag
-              antes: [7]
-            - joker: OopsAll6s
-              antes: [7]
-              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-        - and:
-            - smallBlindTag: NegativeTag
-              antes: [8]
-            - joker: OopsAll6s
-              antes: [8]
-              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+      - and:
+          - smallBlindTag: NegativeTag
+            antes: [2]
+          - joker: OopsAll6s
+            antes: [2]
+            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+      - and:
+          - smallBlindTag: NegativeTag
+            antes: [3]
+          - joker: OopsAll6s
+            antes: [3]
+            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+      - and:
+          - smallBlindTag: NegativeTag
+            antes: [4]
+          - joker: OopsAll6s
+            antes: [4]
+            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+      - and:
+          - smallBlindTag: NegativeTag
+            antes: [5]
+          - joker: OopsAll6s
+            antes: [5]
+            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+      - and:
+          - smallBlindTag: NegativeTag
+            antes: [6]
+          - joker: OopsAll6s
+            antes: [6]
+            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+      - and:
+          - smallBlindTag: NegativeTag
+            antes: [7]
+          - joker: OopsAll6s
+            antes: [7]
+            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+      - and:
+          - smallBlindTag: NegativeTag
+            antes: [8]
+          - joker: OopsAll6s
+            antes: [8]
+            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+    mode: max
     score: 140
     label: negative_tag_oops
 
-  # The early Lucky Cat: shop or a first/second Buffoon pack.
-  - or:
-      mode: max
-      clauses:
-        - joker: LuckyCat
-          antes: [1, 2, 3, 4]
-          sources: { shopItems: [0, 1, 2, 3, 4, 5, 6, 7] }
-        - joker: LuckyCat
-          antes: [1, 2, 3, 4]
-          sources: { boosterPacks: [0, 1] }
-    score: 160
-    label: lucky_cat_early
-
-  # A proper pile of Oops: three or more, shop or Buffoon packs.
-  - joker: OopsAll6s
-    antes: [1, 2, 3, 4, 5, 6, 7, 8]
-    min: 3
+  # Early kitty = free scaling. Later cats still help, just less.
+  - joker: LuckyCat
+    antes: [1, 2, 3]
     sources:
-      shopItems: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-      boosterPacks: [0, 1]
+      shopItems: [0, 1, 2, 3, 4, 5, 6, 7]
+      boosterPacks: [0, 1, 2, 3, 4, 5]
     score: 120
-    label: oops_party
+    label: earlycat
+  - joker: LuckyCat
+    antes: [4]
+    sources:
+      shopItems: [0, 1, 2, 3, 4, 5, 6, 7]
+      boosterPacks: [0, 1, 2, 3, 4, 5]
+    score: 60
+    label: cat4
+
+  # The jackpot: three Oops in the spots the old dicetricks searches proved.
+  - or:
+      - joker: OopsAll6s
+        antes: [3]
+      - joker: OopsAll6s
+        antes: [4]
+        sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+      - joker: OopsAll6s
+        antes: [5]
+        sources: { shopItems: [0, 1, 2] }
+      - joker: OopsAll6s
+        antes: [6]
+        sources: { shopItems: [0, 1, 2] }
+    min: 3
+    score: 300
+    label: oops_jackpot
 
   - joker: OopsAll6s
     antes: [5]
@@ -139,6 +154,15 @@ should:
     sources:
       shopItems: [0, 1, 2]
     score: 100
+
+  - jokers: [Blueprint, Brainstorm, InvisibleJoker, SockAndBuskin, HangingChad]
+    antes: [1, 2, 3, 4]
+    sources:
+      shopItems: [0, 1]
+      boosterPacks: [0, 1]
+    score: 29
+    max: 1
+    label: copy_core
 
   - luckyMoney: [0]
     score: 28
