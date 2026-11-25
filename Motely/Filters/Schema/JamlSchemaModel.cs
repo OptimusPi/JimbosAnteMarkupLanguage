@@ -38,6 +38,9 @@ internal enum JamlValueKind
 
     /// <summary>A list of mappings.</summary>
     Blocks,
+
+    /// <summary>A list whose items are either an enum name or a mapping (a soulOrder entry).</summary>
+    SoulOrderEntries,
 }
 
 /// <summary>One member a filter may write, with everything the loader holds it to.</summary>
@@ -66,7 +69,7 @@ internal sealed record JamlMemberModel(string Name, JamlValueKind Kind, string D
 
     public bool IsList =>
         Kind is JamlValueKind.Texts or JamlValueKind.Numbers or JamlValueKind.Names or JamlValueKind.EventRolls
-            or JamlValueKind.Clauses or JamlValueKind.Blocks;
+            or JamlValueKind.Clauses or JamlValueKind.Blocks or JamlValueKind.SoulOrderEntries;
 }
 
 /// <summary>One mapping the loader binds: the filter, a clause, or a block inside a clause.</summary>

@@ -220,6 +220,8 @@ public static class JamlSchemaGenerator
             JamlValueKind.Clauses => [member.MinItems > 0 ? "[JamlClause, ...JamlClause[]]" : "JamlClause[]"],
             JamlValueKind.Block => [TypeNameOf(model, member.Block!)],
             JamlValueKind.Blocks => [$"{TypeNameOf(model, member.Block!)}[]"],
+            JamlValueKind.SoulOrderEntries =>
+                [$"({named} | {TypeNameOf(model, member.Block!)})[]"],
             _ => throw new NotSupportedException($"no TypeScript form for a {member.Kind} member."),
         };
         return string.Join(" | ", member.Null ? [.. options, "null"] : options);
@@ -433,6 +435,20 @@ public static class JamlSchemaGenerator
             JamlValueKind.Clauses => [ListOf(Clause)],
             JamlValueKind.Block => [Block],
             JamlValueKind.Blocks => [ListOf(Block)],
+            JamlValueKind.SoulOrderEntries =>
+            [
+                ListOf(json =>
+                {
+                    json.WriteStartArray("anyOf");
+                    json.WriteStartObject();
+                    Named(json);
+                    json.WriteEndObject();
+                    json.WriteStartObject();
+                    Block(json);
+                    json.WriteEndObject();
+                    json.WriteEndArray();
+                }),
+            ],
             _ => throw new NotSupportedException($"no schema form for a {member.Kind} member."),
         };
         if (member.Null)

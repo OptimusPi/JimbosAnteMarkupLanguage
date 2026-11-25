@@ -628,14 +628,14 @@
       ],
       "members": {
         "boosterPacks": "numbers",
-        "entries": "blocks:soulOrderEntry",
+        "entries": "soulOrderEntries:MotelyJokerLegendary",
         "label": "text",
         "max": "number",
         "maxAnte": "number",
         "min": "number",
         "score": "number",
-        "soulOrder": "blocks:soulOrderEntry",
-        "soulOrders": "blocks:soulOrderEntry",
+        "soulOrder": "soulOrderEntries:MotelyJokerLegendary",
+        "soulOrders": "soulOrderEntries:MotelyJokerLegendary",
         "with": "block:with"
       }
     }

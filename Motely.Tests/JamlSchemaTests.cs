@@ -124,6 +124,26 @@ public sealed class JamlSchemaTests
     }
 
     [Fact]
+    public void SoulOrder_ReadsBareLegendaryNamesAsWellAsFullEntries()
+    {
+        var bare = JsonNode.Parse("""{"must":[{"soulOrder":["Perkeo","Canio"]}]}""")!;
+        Assert.True(Loads(bare, out var error), error);
+        Assert.True(Check.IsValid(Text(bare)));
+
+        var full = JsonNode.Parse("""{"must":[{"soulOrder":[{"legendary":"Perkeo"},{"legendary":"Canio"}]}]}""")!;
+        Assert.True(Loads(full, out error), error);
+        Assert.True(Check.IsValid(Text(full)));
+
+        var notLegendary = JsonNode.Parse("""{"must":[{"soulOrder":["Blueprint"]}]}""")!;
+        Assert.False(Loads(notLegendary, out _));
+        Assert.False(Check.IsValid(Text(notLegendary)));
+
+        Assert.Contains(
+            "soulOrder?: (MotelyJokerLegendaryName | JamlSoulOrderEntry)[];",
+            Files[JamlSchemaGenerator.TypesFile]);
+    }
+
+    [Fact]
     public void EveryLooseSpellingTheSchemaReads_IsANameToTheLoader()
     {
         foreach (var enumType in Model.Enums)
@@ -489,7 +509,8 @@ public sealed class JamlSchemaTests
                         Accepted(With(new JsonArray(rule.Min.Value)));
                         Accepted(With(new JsonArray(rule.Max.Value)));
                     }
-                    else if (member.Kind == JamlValueKind.Blocks && rule.AppliesTo(member.Block!))
+                    else if ((member.Kind is JamlValueKind.Blocks or JamlValueKind.SoulOrderEntries)
+                             && rule.AppliesTo(member.Block!))
                     {
                         var block = Model.Blocks.Single(candidate => candidate.Type == member.Block);
                         var entry = MinimalObject(Definition(block));

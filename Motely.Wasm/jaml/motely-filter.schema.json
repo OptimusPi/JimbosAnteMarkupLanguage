@@ -6332,7 +6332,14 @@
           "description": "The list soulOrder fills, written directly.",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/soulOrderEntry"
+            "anyOf": [
+              {
+                "$ref": "#/definitions/enums/MotelyJokerLegendary"
+              },
+              {
+                "$ref": "#/definitions/soulOrderEntry"
+              }
+            ]
           },
           "minItems": 1
         },
@@ -6382,7 +6389,14 @@
           "description": "The Souls in the order the run opens them: the first entry is the first Soul opened.",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/soulOrderEntry"
+            "anyOf": [
+              {
+                "$ref": "#/definitions/enums/MotelyJokerLegendary"
+              },
+              {
+                "$ref": "#/definitions/soulOrderEntry"
+              }
+            ]
           },
           "minItems": 1
         },
@@ -6390,7 +6404,14 @@
           "description": "Another spelling of soulOrder.",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/soulOrderEntry"
+            "anyOf": [
+              {
+                "$ref": "#/definitions/enums/MotelyJokerLegendary"
+              },
+              {
+                "$ref": "#/definitions/soulOrderEntry"
+              }
+            ]
           },
           "minItems": 1
         },

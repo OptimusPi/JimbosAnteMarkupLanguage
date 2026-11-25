@@ -128,6 +128,7 @@ internal sealed class JamlSchemaModelBuilder
                 JamlValueKind.Name => Nullable.GetUnderlyingType(member.Type) ?? member.Type,
                 JamlValueKind.Names => member.Type.GetElementType(),
                 JamlValueKind.Card => typeof(MotelyStandardCard),
+                JamlValueKind.SoulOrderEntries => typeof(MotelyJokerLegendary),
                 _ => null,
             },
             Block = kind switch
@@ -135,6 +136,7 @@ internal sealed class JamlSchemaModelBuilder
                 JamlValueKind.Block => member.Type,
                 JamlValueKind.Blocks => member.Type.GetElementType(),
                 JamlValueKind.Card => typeof(JamlStandardCardSlot),
+                JamlValueKind.SoulOrderEntries => member.Type.GetElementType(),
                 _ => null,
             },
             Null = (member.AllowNulls || readsNullAsAny || ReplacesNull(owner, member)) && Admits(owner, name, NullWord, rules),
@@ -267,7 +269,7 @@ internal sealed class JamlSchemaModelBuilder
             {
                 JamlClauseBinding.IntListConverter => JamlValueKind.Numbers,
                 JamlEventRolls.Converter => JamlValueKind.EventRolls,
-                SoulOrderEntryListConverter => JamlValueKind.Blocks,
+                SoulOrderEntryListConverter => JamlValueKind.SoulOrderEntries,
                 _ when converter.GetType().IsGenericType
                     && converter.GetType().GetGenericTypeDefinition() == typeof(JamlClauseBinding.ScalarOrSequenceConverter<>)
                     => JamlValueKind.Names,
@@ -381,6 +383,7 @@ internal sealed class JamlSchemaModelBuilder
             JamlValueKind.Names => FirstName(owner, member, member.Type.GetElementType()!),
             JamlValueKind.Clauses => sampleClause,
             JamlValueKind.Blocks => SampleBlock(member.Type.GetElementType()!),
+            JamlValueKind.SoulOrderEntries => FirstName(owner, member, typeof(MotelyJokerLegendary)),
             var kind => throw new NotSupportedException($"a {kind} member is not a list."),
         };
         return "[" + string.Join(", ", Enumerable.Repeat(item, count)) + "]";

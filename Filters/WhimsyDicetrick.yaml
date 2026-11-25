@@ -1,12 +1,10 @@
 name: WhimsyDicetrick
-author: for pi — Perkeo + Showman + NegativeTag + Lucky Cat + Ankh + Oops party
+author: for pi — Perkeo + Showman + NegativeTag + Oops search party
 description: >
-  An Anaglyph hunt for a pile of Oops! All 6s and a Lucky Cat early. Perkeo and
-  Showman early, at least two Negative skip tags, and Oops in the post-skip shop
-  window. Big scores go to the Oops-in-first-pack / Ankh-in-second-pack duplicate
-  path, a NegativeTag with Oops in the same ante's shop, the earliest cats, the
-  stacked Oops jackpot, and the lucky hit ladders (money and mult, 8 to 1). The
-  seeds below are the hunt list.
+  A community search party on Anaglyph for Oops! All 6s. Perkeo and Showman
+  early, at least two Negative skip tags, and Oops in the shop. The only score
+  is 100 per Oops. A saved seed list is included for convenience; the search
+  party is meant for a wide sweep at whatever seeds per second you like.
 deck: Anaglyph
 stake: White
 
@@ -22,180 +20,15 @@ must:
       shopItems: [2, 3, 4, 5, 6, 7, 8]
   - joker: Showman
     antes: [1, 2, 3, 4]
-  # The star of the party: find the cat early, in a shop or a Buffoon pack.
-  - joker: LuckyCat
-    antes: [1, 2, 3, 4, 5, 6, 7]
-    sources:
-      shopItems: [0, 1, 2, 3, 4, 5, 6, 7]
-      boosterPacks: [0, 1, 2, 3, 4, 5]
-
 should:
-  # The Ankh copy trick: Oops in the first pack, Ankh in the second, same ante.
-  # `mode: max` keeps the trick to one score even when several antes offer it.
-  - or:
-      - and:
-          - joker: OopsAll6s
-            antes: [1]
-            sources: { boosterPacks: [0] }
-          - spectralCard: Ankh
-            antes: [1]
-            sources: { boosterPacks: [1] }
-      - and:
-          - joker: OopsAll6s
-            antes: [2]
-            sources: { boosterPacks: [0] }
-          - spectralCard: Ankh
-            antes: [2]
-            sources: { boosterPacks: [1] }
-      - and:
-          - joker: OopsAll6s
-            antes: [3]
-            sources: { boosterPacks: [0] }
-          - spectralCard: Ankh
-            antes: [3]
-            sources: { boosterPacks: [1] }
-    mode: max
-    score: 180
-    label: ankh_double_oops
-
-  # Skip into the Negative Tag, then find Oops in that same ante's shop.
-  - or:
-      - and:
-          - smallBlindTag: NegativeTag
-            antes: [2]
-          - joker: OopsAll6s
-            antes: [2]
-            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-      - and:
-          - smallBlindTag: NegativeTag
-            antes: [3]
-          - joker: OopsAll6s
-            antes: [3]
-            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-      - and:
-          - smallBlindTag: NegativeTag
-            antes: [4]
-          - joker: OopsAll6s
-            antes: [4]
-            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-      - and:
-          - smallBlindTag: NegativeTag
-            antes: [5]
-          - joker: OopsAll6s
-            antes: [5]
-            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-      - and:
-          - smallBlindTag: NegativeTag
-            antes: [6]
-          - joker: OopsAll6s
-            antes: [6]
-            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-      - and:
-          - smallBlindTag: NegativeTag
-            antes: [7]
-          - joker: OopsAll6s
-            antes: [7]
-            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-      - and:
-          - smallBlindTag: NegativeTag
-            antes: [8]
-          - joker: OopsAll6s
-            antes: [8]
-            sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-    mode: max
-    score: 140
-    label: negative_tag_oops
-
-  # Early kitty = free scaling. Later cats still help, just less.
-  - joker: LuckyCat
-    antes: [1, 2, 3]
+  # Every Oops! All 6s scores 100, wherever it turns up.
+  - joker: OopsAll6s
+    antes: [1, 2, 3, 4, 5, 6, 7, 8]
     sources:
-      shopItems: [0, 1, 2, 3, 4, 5, 6, 7]
+      shopItems: [0, 1, 2, 3, 4, 5, 6, 7, 8]
       boosterPacks: [0, 1, 2, 3, 4, 5]
-    score: 120
-    label: earlycat
-  - joker: LuckyCat
-    antes: [4]
-    sources:
-      shopItems: [0, 1, 2, 3, 4, 5, 6, 7]
-      boosterPacks: [0, 1, 2, 3, 4, 5]
-    score: 60
-    label: cat4
-
-  # The jackpot: three Oops in the spots the old dicetricks searches proved.
-  - or:
-      - joker: OopsAll6s
-        antes: [3]
-      - joker: OopsAll6s
-        antes: [4]
-        sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
-      - joker: OopsAll6s
-        antes: [5]
-        sources: { shopItems: [0, 1, 2] }
-      - joker: OopsAll6s
-        antes: [6]
-        sources: { shopItems: [0, 1, 2] }
-    min: 3
-    score: 300
-    label: oops_jackpot
-
-  - joker: OopsAll6s
-    antes: [5]
-    sources:
-      shopItems: [2, 3, 4, 5, 6, 7, 8]
     score: 100
-  - joker: OopsAll6s
-    antes: [3]
-    sources:
-      shopItems: [0]
-    score: 100
-  - joker: OopsAll6s
-    antes: [6]
-    sources:
-      shopItems: [0, 1, 2]
-    score: 100
-
-  - jokers: [Blueprint, Brainstorm, InvisibleJoker, SockAndBuskin, HangingChad]
-    antes: [1, 2, 3, 4]
-    sources:
-      shopItems: [0, 1]
-      boosterPacks: [0, 1]
-    score: 29
-    max: 1
-    label: copy_core
-
-  - luckyMoney: [0]
-    score: 28
-  - luckyMoney: [1]
-    score: 27
-  - luckyMoney: [2]
-    score: 26
-  - luckyMoney: [3]
-    score: 25
-  - luckyMoney: [4]
-    score: 24
-  - luckyMoney: [5]
-    score: 23
-  - luckyMoney: [6]
-    score: 22
-  - luckyMoney: [7]
-    score: 21
-  - luckyMult: [0]
-    score: 8
-  - luckyMult: [1]
-    score: 7
-  - luckyMult: [2]
-    score: 6
-  - luckyMult: [3]
-    score: 5
-  - luckyMult: [4]
-    score: 4
-  - luckyMult: [5]
-    score: 3
-  - luckyMult: [6]
-    score: 2
-  - luckyMult: [7]
-    score: 1
+    label: oops_each
 
 seeds:
   - VWFABLES
@@ -297,3 +130,109 @@ seeds:
   - YOU14LGD
   - S9R11R9S
   - AAAFAJV2
+  - DSR53161
+  - 7QYQD4D1
+  - QBMO8191
+  - 5ZB8A191
+  - FPCWB111
+  - 3NO4C111
+  - 7Y7BN141
+  - PVMMR191
+  - R1XF62C1
+  - PVQM9241
+  - YIHWA2D1
+  - AXDPO2D1
+  - NR7Z3381
+  - SHDIC3D1
+  - EHMNE321
+  - ZCFCJ391
+  - NRNDS3C1
+  - 3MN4V3C1
+  - 7H77V3D1
+  - 2GQUW351
+  - IAOVG4F1
+  - 2ZK9M4A1
+  - DBSO15A1
+  - 3BTG75C1
+  - TQ2T85A1
+  - CFIXC5D1
+  - X87SK521
+  - MG3ID631
+  - L3VSCOB1
+  - Z1K5M6B1
+  - 1S2DJ7F1
+  - Q5EZK7C1
+  - KZEIX781
+  - AEOIC881
+  - 29NTH831
+  - BM5159A1
+  - 5BDE69C1
+  - CSO4W961
+  - V7OSX9F1
+  - BLW93AA1
+  - HSAVEA61
+  - NR39SA91
+  - 7ZNOJAC1
+  - K5LWUA71
+  - CW1F5B11
+  - 5XBCDB11
+  - EHN7MBE1
+  - TWMLYBB1
+  - WOO78C61
+  - YDBVEC51
+  - 8ESJHCA1
+  - PYZSQCG1
+  - B5PZOC31
+  - 2JYUSCA1
+  - S82WZC11
+  - W56XQD61
+  - TF54UEC1
+  - ZEDV2FD1
+  - BCDXJF81
+  - N5USSF11
+  - 6J9BTFD1
+  - XD1E4G31
+  - 9CLB4GD1
+  - PQ8IIGE1
+  - BRXGAGB1
+  - BAYS7G21
+  - 6BPXQG41
+  - BO6OWG11
+  - XTMYHI81
+  - L7SN3I61
+  - 5AQGDI41
+  - 2NNDEIC1
+  - CJ5C8J71
+  - QOBGFJB1
+  - ICZCWJ91
+  - MBQIEJC1
+  - 8ZPKJJ21
+  - HKVFXJD1
+  - QIQSLK71
+  - CIE58KF1
+  - CS479K51
+  - 2V3TWK81
+  - GRO3HK51
+  - NRBTALE1
+  - 9VPKQKC1
+  - GWFL9LG1
+  - M8E2ILG1
+  - 7SIRAL21
+  - 7U4AIMD1
+  - T2PDPMA1
+  - Y227TM61
+  - JK8B2N41
+  - GD7DMN71
+  - 6HWH7NF1
+  - 8GTF5O81
+  - IZQH8O81
+  - XQEJ9O81
+  - 6QISPOE1
+  - B5U38OB1
+  - V4JIHOA1
+  - RD7WHO31
+  - OEDHQO41
+  - CJQXQO11
+  - RW472QE1
+  - 4V67MPA1
+  - EKOMKPD1
