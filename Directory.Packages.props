@@ -23,8 +23,11 @@
     <PackageVersion Include="Bootsharp.FileSystem" Version="2026.4.30.1559" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
 
-    <!-- Motely.Mcp: the stdio MCP server -->
+    <!-- Motely.Mcp: the stdio MCP server. Core keeps stdout clean for the protocol; the
+         dependency versions are pinned here because central transitive pinning is on. -->
     <PackageVersion Include="ModelContextProtocol.Core" Version="2.4.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
 
     <!-- Motely.Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />

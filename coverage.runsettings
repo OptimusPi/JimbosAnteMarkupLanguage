@@ -5,10 +5,12 @@
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <!-- MotelyVectorUtils: 138 of 202 statements are AdvSimd/PackedSimd/scalar fallbacks
-               unreachable on this x86 AVX-512 host (board section D). Operator-approved exclude;
-               the ARM64 cobertura-merge verb re-credits the file honestly and removes this line. -->
-          <ExcludeByFile>**/Motely/MotelyVectorUtils.cs,**/*.g.cs,**/obj/**/*.cs</ExcludeByFile>
+          <!-- Host-only paths unreachable in this native x64 test run (board section D):
+               MotelyVectorUtils/VectorEnum256 have AdvSimd/PackedSimd/scalar tails, VectorLuaRandom
+               has a Vector128 path used only when Vector512 is not hardware accelerated, and
+               MotelySearch.Browser needs OperatingSystem.IsBrowser(). Operator-approved excludes;
+               the ARM/WASM cobertura-merge verbs re-credit them honestly. -->
+          <ExcludeByFile>**/Motely/MotelyVectorUtils.cs,**/Motely/VectorLuaRandom.cs,**/Motely/VectorEnum256.cs,**/Motely/MotelySearch.Browser.cs,**/*.g.cs,**/obj/**/*.cs</ExcludeByFile>
           <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
         </Configuration>
       </DataCollector>

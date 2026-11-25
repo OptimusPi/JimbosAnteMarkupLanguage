@@ -26,6 +26,7 @@ internal static class JamlClauseBinding
         new ScalarOrSequenceConverter<MotelyPokerHand>(),
         new IntListConverter(),
         new JamlEventRolls.Converter(),
+        new SoulOrderEntryListConverter(),
     ];
 
     internal static readonly Dictionary<string, Type> ClauseTypeByKey =
@@ -191,4 +192,87 @@ internal static class JamlClauseBinding
     internal static bool IsCategoryAny(Scalar scalar) =>
         scalar.Style is ScalarStyle.Plain or ScalarStyle.SingleQuoted or ScalarStyle.DoubleQuoted
         && IsAnyWord(scalar.Value);
+}
+
+/// <summary>
+/// Lets a <c>soulOrder:</c> entry be written as a bare legendary name (<c>- Perkeo</c>) instead of
+/// the full mapping (<c>- { legendary: Perkeo }</c>). Antes default to "any ante"; add <c>antes:</c>
+/// only to constrain where that Soul may open. The point of soulOrder is the *order* of legendaries;
+/// location is optional and usually already pinned by standalone legendaryJoker clauses.
+/// </summary>
+internal sealed class SoulOrderEntryListConverter : IYamlTypeConverter
+{
+    public bool Accepts(Type type) => type == typeof(SoulOrderEntry[]);
+
+    public object? ReadYaml(IParser parser, Type type, ObjectDeserializer nested)
+    {
+        var entries = new List<SoulOrderEntry>();
+
+        if (parser.Current is Scalar scalar)
+        {
+            // A null/empty/"any" value is no entry: an empty list, which the clause rejects.
+            if (JamlClauseBinding.IsAnyWord(scalar.Value ?? ""))
+            {
+                parser.MoveNext();
+                return Array.Empty<SoulOrderEntry>();
+            }
+
+            var joker = (MotelyJoker)nested(typeof(MotelyJoker))!;
+            entries.Add(new SoulOrderEntry { Legendary = joker });
+            return entries.ToArray();
+        }
+
+        if (parser.Current is not SequenceStart)
+            return entries.ToArray();
+
+        parser.Consume<SequenceStart>();
+        while (!parser.TryConsume<SequenceEnd>(out _))
+        {
+            if (parser.Current is Scalar)
+            {
+                var joker = (MotelyJoker)nested(typeof(MotelyJoker))!;
+                entries.Add(new SoulOrderEntry { Legendary = joker });
+                continue;
+            }
+
+            if (parser.Current is MappingStart)
+            {
+                parser.Consume<MappingStart>();
+                var entry = new SoulOrderEntry();
+                while (!parser.TryConsume<MappingEnd>(out _))
+                {
+                    if (!parser.TryConsume<Scalar>(out var key))
+                    {
+                        parser.SkipThisAndNestedEvents();
+                        continue;
+                    }
+                    if (key.Value.Equals("legendary", StringComparison.OrdinalIgnoreCase)
+                        || key.Value.Equals("legendaryJoker", StringComparison.OrdinalIgnoreCase)
+                        || key.Value.Equals("soulJoker", StringComparison.OrdinalIgnoreCase))
+                    {
+                        entry.Legendary = (MotelyJoker)nested(typeof(MotelyJoker))!;
+                    }
+                    else if (key.Value.Equals("antes", StringComparison.OrdinalIgnoreCase)
+                             || key.Value.Equals("ante", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var antes = (int[]?)nested(typeof(int[]));
+                        entry.Antes = antes ?? [];
+                    }
+                    else
+                    {
+                        parser.SkipThisAndNestedEvents();
+                    }
+                }
+                entries.Add(entry);
+                continue;
+            }
+
+            parser.SkipThisAndNestedEvents();
+        }
+
+        return entries.ToArray();
+    }
+
+    public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer nested) =>
+        throw new NotSupportedException();
 }

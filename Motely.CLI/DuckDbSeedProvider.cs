@@ -8,7 +8,7 @@ namespace Motely.CLI;
 /// Streams seeds from any Parquet, DuckDB, SQLite, or remote HTTP(S)/S3 Parquet URL (e.g. Cloudflare R2
 /// over HTTP Range requests via DuckDB httpfs) using streaming mode so huge datasets stay constant-RAM.
 /// </summary>
-internal sealed class DuckDbSeedProvider : IMotelySeedProvider, IDisposable
+public sealed class DuckDbSeedProvider : IMotelySeedProvider, IDisposable
 {
     private readonly DuckDBConnection _connection;
     private readonly DbDataReader _reader;

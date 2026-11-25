@@ -12,7 +12,7 @@ namespace Motely.CLI;
 /// with zero C# heap accumulation. Supports a persistent .duckdb file (CHECKPOINT on Flush) or
 /// direct ZSTD .parquet export (backed by DuckDB with disk spill if huge).
 /// </summary>
-internal sealed class DuckDbResultSink : IMotelyResultSink
+public sealed class DuckDbResultSink : IMotelyResultSink
 {
     private readonly Lock _gate = new();
     private readonly DuckDBConnection _connection;

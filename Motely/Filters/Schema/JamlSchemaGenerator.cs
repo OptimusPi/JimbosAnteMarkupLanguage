@@ -10,7 +10,7 @@ namespace Motely.Filters;
 /// editors. Nothing here names a clause key, a member or an enum value; a description lives in
 /// <see cref="JamlSchemaAnnotations"/>. Every file ends its lines with <c>\n</c> on every OS.
 /// </summary>
-internal static class JamlSchemaGenerator
+public static class JamlSchemaGenerator
 {
     /// <summary>The command that writes the files, run from the repository root.</summary>
     public const string Command = "dotnet run --project Motely.CLI -- schema";

@@ -1,0 +1,275 @@
+name: WhimsyDicetrick
+author: for pi — Perkeo + Showman + NegativeTag + stacked Oops/copy core + lucky ladder
+description: >
+  An Anaglyph party: Perkeo early, Showman early so Oops! All 6s can stack,
+  at least two Negative skip tags, and Oops in the post-skip shop window.
+  Big scores go to the Oops-in-first-pack / Ankh-in-second-pack duplicate path,
+  a NegativeTag with Oops in the same ante's shop, an early Lucky Cat, and the
+  lucky hit ladders (money and mult, 8 to 1). The seeds below are the hunt list.
+deck: Anaglyph
+stake: White
+
+must:
+  - legendaryJoker: Perkeo
+    antes: [2]
+  - smallBlindTag: NegativeTag
+    antes: [2, 3, 4, 5, 6, 7, 8]
+    min: 2
+  - joker: OopsAll6s
+    antes: [2, 3, 4, 5, 6, 7, 8]
+    sources:
+      shopItems: [2, 3, 4, 5, 6, 7, 8]
+  - joker: Showman
+    antes: [1, 2, 3, 4]
+
+should:
+  # The Ankh copy trick: Oops in the first pack, Ankh in the second, same ante.
+  # `mode: max` keeps the trick to one score even when several antes offer it.
+  - or:
+      mode: max
+      clauses:
+        - and:
+            - joker: OopsAll6s
+              antes: [1]
+              sources: { boosterPacks: [0] }
+            - spectralCard: Ankh
+              antes: [1]
+              sources: { boosterPacks: [1] }
+        - and:
+            - joker: OopsAll6s
+              antes: [2]
+              sources: { boosterPacks: [0] }
+            - spectralCard: Ankh
+              antes: [2]
+              sources: { boosterPacks: [1] }
+        - and:
+            - joker: OopsAll6s
+              antes: [3]
+              sources: { boosterPacks: [0] }
+            - spectralCard: Ankh
+              antes: [3]
+              sources: { boosterPacks: [1] }
+    score: 180
+    label: ankh_double_oops
+
+  # Skip into the Negative Tag, then find Oops in that same ante's shop.
+  - or:
+      mode: max
+      clauses:
+        - and:
+            - smallBlindTag: NegativeTag
+              antes: [2]
+            - joker: OopsAll6s
+              antes: [2]
+              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+        - and:
+            - smallBlindTag: NegativeTag
+              antes: [3]
+            - joker: OopsAll6s
+              antes: [3]
+              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+        - and:
+            - smallBlindTag: NegativeTag
+              antes: [4]
+            - joker: OopsAll6s
+              antes: [4]
+              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+        - and:
+            - smallBlindTag: NegativeTag
+              antes: [5]
+            - joker: OopsAll6s
+              antes: [5]
+              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+        - and:
+            - smallBlindTag: NegativeTag
+              antes: [6]
+            - joker: OopsAll6s
+              antes: [6]
+              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+        - and:
+            - smallBlindTag: NegativeTag
+              antes: [7]
+            - joker: OopsAll6s
+              antes: [7]
+              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+        - and:
+            - smallBlindTag: NegativeTag
+              antes: [8]
+            - joker: OopsAll6s
+              antes: [8]
+              sources: { shopItems: [2, 3, 4, 5, 6, 7, 8] }
+    score: 140
+    label: negative_tag_oops
+
+  # The early Lucky Cat: shop or a first/second Buffoon pack.
+  - or:
+      mode: max
+      clauses:
+        - joker: LuckyCat
+          antes: [1, 2, 3, 4]
+          sources: { shopItems: [0, 1, 2, 3, 4, 5, 6, 7] }
+        - joker: LuckyCat
+          antes: [1, 2, 3, 4]
+          sources: { boosterPacks: [0, 1] }
+    score: 160
+    label: lucky_cat_early
+
+  # A proper pile of Oops: three or more, shop or Buffoon packs.
+  - joker: OopsAll6s
+    antes: [1, 2, 3, 4, 5, 6, 7, 8]
+    min: 3
+    sources:
+      shopItems: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+      boosterPacks: [0, 1]
+    score: 120
+    label: oops_party
+
+  - joker: OopsAll6s
+    antes: [5]
+    sources:
+      shopItems: [2, 3, 4, 5, 6, 7, 8]
+    score: 100
+  - joker: OopsAll6s
+    antes: [3]
+    sources:
+      shopItems: [0]
+    score: 100
+  - joker: OopsAll6s
+    antes: [6]
+    sources:
+      shopItems: [0, 1, 2]
+    score: 100
+
+  - luckyMoney: [0]
+    score: 28
+  - luckyMoney: [1]
+    score: 27
+  - luckyMoney: [2]
+    score: 26
+  - luckyMoney: [3]
+    score: 25
+  - luckyMoney: [4]
+    score: 24
+  - luckyMoney: [5]
+    score: 23
+  - luckyMoney: [6]
+    score: 22
+  - luckyMoney: [7]
+    score: 21
+  - luckyMult: [0]
+    score: 8
+  - luckyMult: [1]
+    score: 7
+  - luckyMult: [2]
+    score: 6
+  - luckyMult: [3]
+    score: 5
+  - luckyMult: [4]
+    score: 4
+  - luckyMult: [5]
+    score: 3
+  - luckyMult: [6]
+    score: 2
+  - luckyMult: [7]
+    score: 1
+
+seeds:
+  - VWFABLES
+  - JZFABLEG
+  - AMXSSXMA
+  - 52R6R25
+  - 1YTLTY1
+  - 8Q77Q8
+  - H6A6H
+  - NR8TWWK1
+  - N7EU5P61
+  - 743JAJ21
+  - OJKMAAVC
+  - OCTQGSDK
+  - FO3OZSUC
+  - 5GB5BSUC
+  - 3URA3OUC
+  - KRM19OUC
+  - 6FO2QWUC
+  - U322APUC
+  - B4S3S7NI
+  - JHMT6AAV
+  - C8IBRI9I
+  - 9G8UGTDB
+  - 5YFCZXNO
+  - APOQG8XK
+  - IDIGAPGL
+  - KZVTHGRE
+  - HTSFFC8O
+  - 3ZEWGJFR
+  - 489SC7XS
+  - KQLLN8NA
+  - Y2NAV1DE
+  - ZL48JRUM
+  - ROBZHI7D
+  - F7WCC2XK
+  - H19S1CYY
+  - P7JI78LV
+  - J9EEIW48
+  - UKZI4T8M
+  - DITIZKA8
+  - 8XX9QJ98
+  - HPNKQ988
+  - 4B5GQ888
+  - EZ9SU888
+  - SNDV8888
+  - HZ2CQ888
+  - QB5BC888
+  - 1IO3YUJK
+  - W3DN7EJK
+  - TIH7H8JK
+  - C5EM2WIK
+  - RYCGD5JK
+  - RCK3JPIK
+  - VH1VOBWI
+  - 4LSSI5SI
+  - Y9GDBTQI
+  - 47G14NPI
+  - UGSP64OI
+  - DRS3DKMI
+  - 4BGLFJMI
+  - UXSY1TD7
+  - JO5QI6W6
+  - 8TUW3OQ5
+  - 3QSO1462
+  - 8VF9KG42
+  - ROT5PD42
+  - RR9Q6N32
+  - MVT4VH22
+  - 4CZ2VF22
+  - AP4CUA22
+  - NACTY422
+  - TYERV222
+  - AOBEISH9
+  - TG2KBGH9
+  - JZYEK9G9
+  - K9PTHCZB
+  - KOXUZFVB
+  - P6Z1M3HB
+  - J15NGDNA
+  - BSEIXSAB
+  - GROIWXJA
+  - SEK9QYKA
+  - J6SOSRDA
+  - 975H8LFA
+  - 2B84FZCA
+  - 9RWC9EBA
+  - F4SIA2BA
+  - F83CKQAA
+  - Y2AJQEAA
+  - DJF7OEAA
+  - 9GHL8EAA
+  - 293BDDAA
+  - OPGL6BAA
+  - KD6SXA3Y
+  - XR37TUOZ
+  - DS3IPUQX
+  - 6UROKAYG
+  - YOU14LGD
+  - S9R11R9S
+  - AAAFAJV2

@@ -656,7 +656,17 @@ public static class MotelyJamlyzer
     /// legendary clause on antes 1 and up, which opens exactly the Souls it names.
     /// </summary>
     public static bool OpensAnteZeroSouls(JamlConfig config) =>
-        config.Must.Concat(config.Should).Concat(config.MustNot).Any(NamesAnteZeroSoul);
+        config.Must.Concat(config.Should).Concat(config.MustNot).Any(NamesAnteZeroSoul)
+        || config.Must.Concat(config.Should).Concat(config.MustNot).Any(HasHieroglyphVoucher);
+
+    private static bool HasHieroglyphVoucher(MotelyClause clause) =>
+        clause switch
+        {
+            VoucherClause c => c.Vouchers.Any(v => v is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph),
+            IWithScopedClause c => c.With.Vouchers.Any(v => v is MotelyVoucher.Hieroglyph or MotelyVoucher.Petroglyph),
+            LogicClause c => c.Clauses.Any(HasHieroglyphVoucher),
+            _ => false,
+        };
 
     private static bool NamesAnteZeroSoul(MotelyClause clause) =>
         clause switch

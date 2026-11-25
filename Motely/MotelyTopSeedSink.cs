@@ -23,7 +23,16 @@ public static class MotelyTopSeedSink
     /// </summary>
     public sealed class Collector(int limit)
     {
-        private readonly PriorityQueue<SavedSeedEntry, (int Score, long Sequence)> _queue = new();
+        private readonly PriorityQueue<SavedSeedEntry, (int Score, long Sequence)> _queue = new(
+            Comparer<(int Score, long Sequence)>.Create(static (a, b) =>
+            {
+                int byScore = a.Score.CompareTo(b.Score);
+                if (byScore != 0)
+                    return byScore;
+                // On a tie, the later arrival is evicted first, so earlier seeds win.
+                return b.Sequence.CompareTo(a.Sequence);
+            })
+        );
         private long _sequence;
 
         // Scored results arrive on every worker thread — the engine invokes result callbacks with

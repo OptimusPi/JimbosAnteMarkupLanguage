@@ -15,10 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Motely.CLI" />
+    <!-- White-box tests are the only friend assembly. Tools and hosts use the public API:
+         JamlSchemaGenerator for schema files, JamlConfig/MotelySearchBuilder/Jamlyzer for clients,
+         and the MCP server (Motely.Mcp) uses those same public types. -->
     <InternalsVisibleTo Include="Motely.Tests" />
-    <InternalsVisibleTo Include="Motely.Wasm" />
-    <InternalsVisibleTo Include="Motely.Mcp" />
   </ItemGroup>
 
   <!-- Packages (versions from Directory.Packages.props) -->

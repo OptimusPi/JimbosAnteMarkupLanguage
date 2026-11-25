@@ -74,7 +74,8 @@ internal static class LegendarySoulMatcher
         LegendaryJokerClause clause,
         int maxBoosterPack,
         ref SoulWalk walk,
-        MotelyRunState runState
+        MotelyRunState runState,
+        bool openAllSouls = false
     )
     {
         // Null Sources (no sources: block) → legendary defaults; a non-null block is used as-is.
@@ -157,7 +158,12 @@ internal static class LegendarySoulMatcher
                 p <= maxBoosterPack
                 && IsBoosterSlotTargetForLegendary(src, p, pack)
                 && (!src.RequireMegaPack || pack.GetPackSize() == MotelyBoosterPackSize.Mega);
-            if (!hasSoul || !isTarget)
+            if (!hasSoul)
+                continue;
+            // A run-wide walk opens every Soul so the global Joker4 index stays honest, even
+            // when this particular clause does not target the pack. A clause-local walk keeps
+            // the historical "only targeted Souls advance the index" behaviour.
+            if (!openAllSouls && !isTarget)
                 continue;
 
             // The player opens this Soul.
@@ -170,6 +176,7 @@ internal static class LegendarySoulMatcher
                 runState,
                 ref editionStream,
                 ref editionInit,
+                counted: isTarget,
                 out bool done
             );
             if (done)
@@ -244,6 +251,7 @@ internal static class LegendarySoulMatcher
                 runState,
                 ref editionStream,
                 ref editionInit,
+                counted: true,
                 out done
             );
             if (done)
@@ -267,11 +275,12 @@ internal static class LegendarySoulMatcher
         MotelyRunState runState,
         ref MotelySingleJokerFixedRarityStream editionStream,
         ref bool editionInit,
+        bool counted,
         out bool done
     )
     {
         int roll = walk.Opened++;
-        bool counted = clause.Rolls.Length == 0 || ArrayContains(clause.Rolls, roll);
+        counted &= clause.Rolls.Length == 0 || ArrayContains(clause.Rolls, roll);
         int count = 0;
 
         if (clause.SoulCardOnly)

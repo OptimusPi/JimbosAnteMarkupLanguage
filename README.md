@@ -6,6 +6,7 @@ Balatro seed search. You write a filter in JAML (YAML-shaped), and a SIMD engine
 |---|---|
 | `Motely` | The engine and the JAML filter loader |
 | `Motely.CLI` | The command-line search. The build names it `Motely.CLI`; the examples below call it `motely` |
+| `Motely.Mcp` | A stdio MCP server for bots and agents: `seed_validate`, `seed_search`, `soul_order`, `best_seed`, `analyze_seed` |
 | `Motely.Tests` | The test suite |
 | `Motely.Wasm` | Browser build via WebAssembly |
 | `Motely.Web` | The seed lab, a web app on `motely-wasm` and `jaml-ui` |
@@ -31,6 +32,8 @@ should:
 ```
 
 `and` and `or` hold their children as a list, either directly (`or: [...]`) or under `clauses:`. A filter written as JSON loads the same way.
+
+`soulOrder:` entries may be written as bare legendary names (`soulOrder: [Perkeo, Canio, Perkeo]`); `antes:` on an entry is optional and defaults to any ante. The point of `soulOrder:` is the *order* of legendaries — location is optional and usually already pinned by standalone `legendaryJoker:` clauses.
 
 Some keys and names have a second spelling that loads the same clause:
 
@@ -108,6 +111,28 @@ motely --jaml otherFilter --seeds finds.parquet --cutoff off               # re-
 motely --jaml a --seeds pile.csv -q | motely --jaml b --seeds - -q         # chain filters
 motely --jaml longColaDanker --seeds pile.csv --save                       # keep the winners in the filter
 ```
+
+## For bots: MCP
+
+`Motely.Mcp` speaks MCP over stdio. Point a client at `dotnet run --project Motely.Mcp` (or a published `Motely.Mcp` binary). stdout is reserved for the protocol; Motely's own search stays quiet.
+
+| Tool | What it does |
+|---|---|
+| `seed_validate` | Load JAML text, a filter path, or a bare `Filters/` name and build the plan. |
+| `seed_search` | Search with `replay`, `seeds`, `keyword`, `random` or a bounded `sequential` window. Same mode names and result text as the WebMCP tool in `Motely.Web`. |
+| `soul_order` | Report a seed's **anteless** run-global legendary face sequence, plus a direct `Perkeo → Perkeo` answer. `maxAnte` defaults to 39 and `heldJokers` maps to `with: { jokers: [...] }`. |
+| `best_seed` | Replay a seed file/CSV/list against a filter, ignore its cutoff, and return the highest-scoring seed and a top-N table. |
+| `analyze_seed` | Blueprint-style seed overview. Pass `filter` to use the exact JAML's antes, shop slots and `with:`; otherwise use `maxAnte` and `shopLimit`. |
+
+Every tool returns short text plus structured JSON and sets `isError` with an actionable `Error: …` message on bad input. All five are read-only/idempotent.
+
+Replaying a pile for the best seed is one call:
+
+```json
+{ "filter": "longCola", "seeds": "my46kSeeds.csv", "top": 10 }
+```
+
+The CLI equivalent is `motely --jaml longCola --seeds my46kSeeds.csv --cutoff off --threads 1`, then sort by score; `--out finds.parquet --jamlyze` keeps the Jamlyzer window beside each find.
 
 ## Build and test
 

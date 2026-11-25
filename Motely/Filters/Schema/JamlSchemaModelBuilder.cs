@@ -267,6 +267,7 @@ internal sealed class JamlSchemaModelBuilder
             {
                 JamlClauseBinding.IntListConverter => JamlValueKind.Numbers,
                 JamlEventRolls.Converter => JamlValueKind.EventRolls,
+                SoulOrderEntryListConverter => JamlValueKind.Blocks,
                 _ when converter.GetType().IsGenericType
                     && converter.GetType().GetGenericTypeDefinition() == typeof(JamlClauseBinding.ScalarOrSequenceConverter<>)
                     => JamlValueKind.Names,

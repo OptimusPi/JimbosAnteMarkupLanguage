@@ -1,16 +1,15 @@
 name: Zerkeo
-deck: Anaglyph
+deck: Ghost
 stake: White
 must:
   - legendaryJoker: Perkeo
-    edition: Negative
     antes: [0]
     sources: {boosterPacks: [0,1]}
   - Voucher: Hieroglyph
-    anteS: [1]
-  - legendaryJoker:
+    antes: [1]
+  - legendaryJoker: Perkeo
     edition: Negative
-    antes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    antes: [9,10,11]
     sources: {boosterPacks: [0,1,2,3,4,5]}
 should:
   - legendaryJoker:

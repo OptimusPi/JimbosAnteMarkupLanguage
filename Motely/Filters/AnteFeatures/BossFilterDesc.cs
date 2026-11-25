@@ -26,64 +26,6 @@ public readonly struct BossFilterDesc(BossClause clause)
 {
     private readonly BossClause _clause = clause;
 
-    private static bool IsFinisherAnte(int ante) => ante >= 2 && ante % 8 == 0;
-
-    /// <summary>How many normal bosses may appear at <paramref name="ante"/> at all.</summary>
-    private static int EligibleNormal(int ante)
-    {
-        int count = 0;
-        foreach (var boss in MotelyBossBlindExt.NormalBossBlinds)
-            if (boss.GetBossMinAnte() <= ante)
-                count++;
-        return count;
-    }
-
-    /// <summary>How many normal-boss antes precede <paramref name="ante"/>.</summary>
-    private static int NormalAntesBefore(int ante) => (ante - 1) - (ante - 1) / 8;
-
-    /// <summary>
-    /// The normal pool at <paramref name="ante"/>: the eligible bosses less the ones seen since
-    /// the last refill. Early antes cannot run dry — eligibility grows faster than the seen
-    /// count — so the refill cycle is the full normal roster, which is the pool from ante 6 on.
-    /// </summary>
-    private static int NormalPool(int ante)
-    {
-        int roster = MotelyBossBlindExt.NormalBossBlinds.Length;
-        int seen = NormalAntesBefore(ante) % roster;
-        return Math.Max(1, EligibleNormal(ante) - seen);
-    }
-
-    private static double ShareAt(MotelyBossBlind boss, int ante)
-    {
-        if (ante < 1)
-            return 0.0;
-
-        if (boss.GetBossType() == MotelyBossBlindType.Finisher)
-        {
-            // A uniform permutation of five: whichever finisher ante it is, each is 1/5.
-            return IsFinisherAnte(ante) ? 1.0 / MotelyBossBlindExt.FinisherBossBlinds.Length : 0.0;
-        }
-
-        if (IsFinisherAnte(ante) || ante < boss.GetBossMinAnte())
-            return 0.0;
-
-        // Not drawn at any earlier eligible normal ante in the current refill cycle …
-        int roster = MotelyBossBlindExt.NormalBossBlinds.Length;
-        int cycleStartIndex = NormalAntesBefore(ante) / roster * roster;
-        double notSeen = 1.0;
-        for (int earlier = 1; earlier < ante; earlier++)
-        {
-            if (IsFinisherAnte(earlier) || earlier < boss.GetBossMinAnte())
-                continue;
-            if (NormalAntesBefore(earlier) < cycleStartIndex)
-                continue;
-            notSeen *= 1.0 - 1.0 / NormalPool(earlier);
-        }
-
-        // … then drawn from this ante's pool.
-        return notSeen / NormalPool(ante);
-    }
-
     public BossFilter CreateFilter(ref MotelyFilterCreationContext ctx) =>
         new BossFilter(_clause);
 

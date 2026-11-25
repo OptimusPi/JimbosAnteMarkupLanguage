@@ -45,10 +45,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Motely.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Motely\Motely.csproj" />
   </ItemGroup>
 </Project>

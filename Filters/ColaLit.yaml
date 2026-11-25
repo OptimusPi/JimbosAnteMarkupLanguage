@@ -1,0 +1,36 @@
+name: ColaLit
+deck: Ghost
+stake: White
+must:
+  - legendaryJoker: Perkeo
+    antes: [0,1]
+    sources: {boosterPacks: [0,1,2]}
+  - Voucher: Hieroglyph
+    antes: [1]
+  - SpectralCard: Ankh
+    sources: {shopItems: [0,1,2,3]}
+    antes: [1,2,3]
+  - legendaryJoker: Perkeo
+    edition: Negative
+    antes: [10,11,12,13]
+    sources: {boosterPacks: [0,1,2,3,4,5]}
+  - tag: NegativeTag
+    antes: [8,9,10,11,12]
+should:
+  - SpectralCard: Ankh
+    sources: {shopItems: [0,1,2,3]}
+    antes: [1,2,3]
+  - jokers: [Blueprint, Brainstorm, InvisibleJoker]
+    antes: [1,2,3]
+  - jokers: [OopsAll6s, Blueprint, Brainstorm, InvisibleJoker, Baron, Mime, Showman]
+    sources: {shopItems: [0,1,2,3,4,5,6,7,8,9,10,11,12]}
+    antes: [10,11,12,13,14,15,16]
+
+seeds:
+  - 417UJQ11,  3, 3
+  - U59UOI41,  2, 2
+  - 42OI2R41,  0, 0
+  - GGECTH61,  2, 2
+  - PDJYAE71,  2, 2
+  - JNN5KG71,  4, 4
+  - 36ZVAU71,  3, 3
