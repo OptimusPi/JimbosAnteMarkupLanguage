@@ -6,8 +6,8 @@
 # - The tag exists: CI runs on the tag's commit, then the tag's release is created or updated.
 # - The tag does not exist: the run must be started from the default branch. CI runs on that
 #   head commit, then the tag is created on that same commit and released.
-# On every path the tag must be the version Directory.Build.props and Motely.Wasm/package.json
-# have on the commit that is released.
+# On every path the tag must be the version Directory.Build.props, Motely.Wasm/package.json and
+# Motely.Wasm/package-lock.json have on the commit that is released.
 # The release body is docs/RELEASE-<version>.md when that file exists; a new release without one
 # gets generated notes. On a manual run the file is read from the ref the run was started from,
 # so a correction to the notes on main reaches a published release by running this again for
@@ -71,8 +71,9 @@ jobs:
           fi
           engine=$(git show "$at:Directory.Build.props" | sed -n 's:.*<MotelyVersion>\(.*\)</MotelyVersion>.*:\1:p')
           package=$(git show "$at:Motely.Wasm/package.json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
-          if [ "v$engine" != "$TAG" ] || [ "v$package" != "$TAG" ]; then
-            echo "::error::$TAG cannot be released from $at: there the engine is $engine and the package is $package."
+          lock=$(git show "$at:Motely.Wasm/package-lock.json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).packages[""].version')
+          if [ "v$engine" != "$TAG" ] || [ "v$package" != "$TAG" ] || [ "v$lock" != "$TAG" ]; then
+            echo "::error::$TAG cannot be released from $at: there the engine is $engine, the package is $package and the lockfile is $lock."
             exit 1
           fi
           echo "commit=$commit" >> "$GITHUB_OUTPUT"

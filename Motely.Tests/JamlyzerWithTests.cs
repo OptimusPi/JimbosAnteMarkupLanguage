@@ -73,6 +73,25 @@ public sealed class JamlyzerWithTests
     }
 
     [Fact]
+    public void ConfigWith_FindsTheFirstWrittenBlockInsideALogicClause()
+    {
+        var config = JamlConfig.FromJaml(
+            """
+            must:
+              - and:
+                  - joker: Joker
+                  - tarotCard: any
+                    with: { vouchers: [TarotMerchant] }
+            """
+        );
+
+        var with = JamlConfigWith.Find(config);
+
+        Assert.NotNull(with);
+        Assert.Equal([MotelyVoucher.TarotMerchant], with.Vouchers);
+    }
+
+    [Fact]
     public void LuckEvents_AreWeighedByLuck_AsALuckClauseCountsThem()
     {
         const int Rolls = 40;

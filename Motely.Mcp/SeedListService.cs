@@ -7,8 +7,7 @@ internal static class SeedListService
 
     /// <summary>
     /// File paths (plain lists, CSVs, motely output) and inline lists both arrive as one string.
-    /// A file wins over an inline seed only when the path actually exists, so a seed named like a
-    /// local file is never silently opened.
+    /// A file inside the allowed areas wins over an inline list; anything else stays a seed list.
     /// </summary>
     public static bool TryRead(string? input, out string[] seeds, out string? error)
     {
@@ -19,7 +18,16 @@ internal static class SeedListService
             return false;
         }
 
-        IEnumerable<string> raw = McpPathResolver.TryFindFile(input!.Trim(), out string resolved)
+        string trimmed = input!.Trim();
+        if (McpPathResolver.IsOutsideAllowed(trimmed))
+        {
+            error =
+                $"Error: seed path '{trimmed}' is outside the allowed search areas: "
+                + $"{McpPathResolver.DescribeAllowedRoots()}.";
+            return false;
+        }
+
+        IEnumerable<string> raw = McpPathResolver.TryFindFile(trimmed, out string resolved)
             ? ReadFile(resolved)
             : input.Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 

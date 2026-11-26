@@ -62,7 +62,12 @@ internal static class AnalyzeSeedToolService
 
         try
         {
-            var result = MotelyJamlyzer.Analyze(config!, eventRolls: 0, shopSlots: shopLimit).FirstOrDefault();
+            var result = MotelyJamlyzer.Analyze(
+                config!,
+                eventRolls: 0,
+                shopSlots: shopLimit,
+                with: JamlConfigWith.Find(config!)
+            ).FirstOrDefault();
             if (result is null)
                 return ToolResults.Error("Error: the seed could not be analyzed.");
 

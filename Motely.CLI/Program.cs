@@ -371,11 +371,16 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
     // max only while finds flood in). Max is one record across every thread, so it gates here.
     settings = settings.WithScoredResultGate(cutoff.IsMax ? cutoff.ShouldEmit : null);
     if (duckSink is not null)
-        settings = settings.WithBatchBoundaryCallback(duckSink.Flush);
+        settings = settings.WithBatchBoundaryCallback(duckSink.FlushBatch);
     if (duckSink is not null && jamlyze)
     {
         settings = settings.WithSeedAnalyzeProvider(
-            MotelyJamlyzer.CreateRiderDesc(config, duckSink.OnAnalyzed, eventRolls: 0)
+            MotelyJamlyzer.CreateRiderDesc(
+                config,
+                duckSink.OnAnalyzed,
+                eventRolls: 0,
+                with: JamlConfigWith.Find(config)
+            )
         );
     }
 

@@ -28,6 +28,13 @@ internal static class FilterToolService
                 || text.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
                 ? text
                 : Path.Combine("Filters", text + ".yaml");
+            if (McpPathResolver.IsOutsideAllowed(candidate))
+            {
+                error =
+                    $"Error: filter path '{text}' is outside the allowed search areas: "
+                    + $"{McpPathResolver.DescribeAllowedRoots()}.";
+                return false;
+            }
             if (McpPathResolver.TryFindFile(candidate, out string resolved))
                 text = File.ReadAllText(resolved);
         }

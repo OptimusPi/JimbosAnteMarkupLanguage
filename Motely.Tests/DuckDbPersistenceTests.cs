@@ -57,6 +57,46 @@ public sealed class DuckDbPersistenceTests
     }
 
     [Fact]
+    public void DuckDbSeedProvider_KeepsAnEmptySeedInsideTheStream()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"motely-empty-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            string dbPath = Path.Combine(tempDir, "seeds.duckdb");
+            using (var sink = new DuckDbResultSink(dbPath, tallyCount: 0))
+            {
+                sink.OnSeed("ALEEB");
+                sink.OnSeed("");
+                sink.OnSeed("MOTELY77");
+            }
+
+            using var provider = new DuckDbSeedProvider(dbPath);
+            Assert.Equal(3, provider.SeedCount);
+            string[] read = provider.EnumerateSeeds().ToArray();
+            Assert.Equal(
+                new HashSet<string>(["ALEEB", "", "MOTELY77"]),
+                new HashSet<string>(read)
+            );
+            Assert.Contains(string.Empty, read);
+            Assert.False(provider.TryNextSeed(out _));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DuckDbSeedProvider_ReadsTheExtensionBeforeASignedUrlQuery()
+    {
+        const string url = "https://example.com/finds.parquet?sig=abc123&x=1";
+        Assert.True(DuckDbSeedProvider.HandlesPath(url));
+        Assert.Equal(".parquet", DuckDbSeedProvider.SourceExtension(url));
+        Assert.Equal(".pq", DuckDbSeedProvider.SourceExtension("s3://bucket/finds.pq?sig=abc"));
+    }
+
+    [Fact]
     public void DuckDbResultSink_ExportsZstdParquetWithJamlyzerWindowAndReadsBack()
     {
         string tempDir = Path.Combine(Path.GetTempPath(), $"motely-pq-{Guid.NewGuid():N}");
@@ -86,12 +126,13 @@ public sealed class DuckDbPersistenceTests
                     .Settings.WithSeedList(seeds)
                     .WithThreadCount(1)
                     .WithQuietMode(true)
-                    .WithBatchBoundaryCallback(sink.Flush)
+                    .WithBatchBoundaryCallback(sink.FlushBatch)
                     .WithSeedAnalyzeProvider(
                         MotelyJamlyzer.CreateRiderDesc(config, sink.OnAnalyzed, eventRolls: 0)
                     )
                     .Start();
                 search.AwaitCompletion();
+                Assert.False(File.Exists(pqPath));
                 sink.Flush();
             }
 

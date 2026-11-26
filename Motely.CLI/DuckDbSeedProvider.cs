@@ -23,8 +23,21 @@ public sealed class DuckDbSeedProvider : IMotelySeedProvider, IDisposable
             return false;
         if (IsRemotePath(argument))
             return true;
-        string ext = Path.GetExtension(argument).ToLowerInvariant();
+        string ext = SourceExtension(argument);
         return ext is ".parquet" or ".pq" or ".duckdb" or ".db" or ".sqlite" or ".sqlite3";
+    }
+
+    /// <summary>
+    /// The extension DuckDB should read. A signed remote URL keeps its query string, so the
+    /// extension comes from the URI path rather than from the whole address.
+    /// </summary>
+    public static string SourceExtension(string path)
+    {
+        string withoutQuery = path;
+        int suffix = path.IndexOfAny(['?', '#']);
+        if (suffix >= 0)
+            withoutQuery = path[..suffix];
+        return Path.GetExtension(withoutQuery).ToLowerInvariant();
     }
 
     public DuckDbSeedProvider(string path, bool distinct = false)
@@ -42,7 +55,7 @@ public sealed class DuckDbSeedProvider : IMotelySeedProvider, IDisposable
             extCmd.ExecuteNonQuery();
         }
 
-        string ext = Path.GetExtension(path).ToLowerInvariant();
+        string ext = SourceExtension(path);
         string from = ext switch
         {
             ".parquet" or ".pq" => $"read_parquet('{EscapeSql(path)}')",
@@ -70,28 +83,36 @@ public sealed class DuckDbSeedProvider : IMotelySeedProvider, IDisposable
 
     public IEnumerable<string> EnumerateSeeds()
     {
-        while (true)
-        {
-            string seed = NextSeed();
-            if (seed.Length == 0)
-                yield break;
+        while (TryNextSeed(out string seed))
             yield return seed;
-        }
     }
 
-    public string NextSeed()
+    public string NextSeed() => TryNextSeed(out string seed) ? seed : string.Empty;
+
+    /// <summary>
+    /// An empty string is a seed the file can hold, not the end of the stream. Callers that need
+    /// to tell the two apart use this method; EnumerateSeeds ends only when it returns false.
+    /// </summary>
+    public bool TryNextSeed(out string seed)
     {
         lock (_lock)
         {
             if (_disposed)
-                return string.Empty;
+            {
+                seed = string.Empty;
+                return false;
+            }
 
             while (_reader.Read())
             {
                 if (!_reader.IsDBNull(0))
-                    return _reader.GetString(0);
+                {
+                    seed = _reader.GetString(0);
+                    return true;
+                }
             }
-            return string.Empty;
+            seed = string.Empty;
+            return false;
         }
     }
 

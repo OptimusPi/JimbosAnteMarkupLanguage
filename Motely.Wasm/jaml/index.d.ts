@@ -940,7 +940,7 @@ export interface JamlLegendarySoulOrderClause {
   /** Booster pack offers the walk reads Souls from. Offers 0 to 5 when not written. */
   boosterPacks?: number | number[] | null;
   /** The list soulOrder fills, written directly. */
-  entries?: (MotelyJokerLegendaryName | JamlSoulOrderEntry)[];
+  entries?: [(MotelyJokerLegendaryName | JamlSoulOrderEntry), ...(MotelyJokerLegendaryName | JamlSoulOrderEntry)[]];
   /** The clause's column name in results. Derived from the clause when not written. */
   label?: string | number | boolean | null;
   /** The most occurrences that still count as a match. No limit when not written. The loader also refuses a value below min, which this schema cannot check: "max is below min (min defaults to 1), so nothing can match." */
@@ -952,9 +952,9 @@ export interface JamlLegendarySoulOrderClause {
   /** The clause's weight in a seed's score under should:. 1 when not written. */
   score?: number;
   /** The Souls in the order the run opens them: the first entry is the first Soul opened. */
-  soulOrder?: (MotelyJokerLegendaryName | JamlSoulOrderEntry)[];
+  soulOrder?: [(MotelyJokerLegendaryName | JamlSoulOrderEntry), ...(MotelyJokerLegendaryName | JamlSoulOrderEntry)[]];
   /** Another spelling of soulOrder. */
-  soulOrders?: (MotelyJokerLegendaryName | JamlSoulOrderEntry)[];
+  soulOrders?: [(MotelyJokerLegendaryName | JamlSoulOrderEntry), ...(MotelyJokerLegendaryName | JamlSoulOrderEntry)[]];
   /** What the player holds while this clause is read. */
   with?: JamlWith;
 }

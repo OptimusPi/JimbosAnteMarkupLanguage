@@ -1,3 +1,4 @@
+using System.Reflection;
 using Motely.Filters;
 
 namespace Motely.Tests;
@@ -20,6 +21,25 @@ public sealed class ScoredSeedResultTests
         Assert.Empty(result.Tallies);
         Assert.Empty(result.Tally);
         Assert.True(result.TallyValuesSpan.IsEmpty);
+    }
+
+    [Fact]
+    public void TallyBuffer_GrowsOnlyWhenATallyArrives()
+    {
+        var field = typeof(MotelyScoredSeedResult).GetField(
+            "_tallyValues",
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )!;
+        var result = new MotelyScoredSeedResult();
+
+        Assert.Empty((int[])field.GetValue(result)!);
+        result.Reset("SEED", 5);
+        Assert.Empty((int[])field.GetValue(result)!);
+
+        result.AddTally(7);
+        var grown = (int[])field.GetValue(result)!;
+        Assert.Equal(7, result.GetTally(0));
+        Assert.InRange(grown.Length, 1, MotelyScoredSeedResult.MAX_TALLY_COUNT);
     }
 
     [Fact]

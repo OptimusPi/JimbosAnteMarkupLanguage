@@ -138,8 +138,12 @@ public sealed class JamlSchemaTests
         Assert.False(Loads(notLegendary, out _));
         Assert.False(Check.IsValid(Text(notLegendary)));
 
+        var empty = JsonNode.Parse("""{"must":[{"soulOrder":[]}]}""")!;
+        Assert.False(Loads(empty, out _));
+        Assert.False(Check.IsValid(Text(empty)));
+
         Assert.Contains(
-            "soulOrder?: (MotelyJokerLegendaryName | JamlSoulOrderEntry)[];",
+            "soulOrder?: [(MotelyJokerLegendaryName | JamlSoulOrderEntry), ...(MotelyJokerLegendaryName | JamlSoulOrderEntry)[]]",
             Files[JamlSchemaGenerator.TypesFile]);
     }
 

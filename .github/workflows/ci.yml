@@ -207,13 +207,13 @@ jobs:
           name: motely-wasm
           path: Motely.Wasm/bin/motely-wasm
       - name: Install web dependencies
-        run: if [ -f package-lock.json ]; then npm ci; else npm install --legacy-peer-deps; fi
+        run: if [ -f package-lock.json ]; then npm ci --legacy-peer-deps --workspaces=false; else npm install --legacy-peer-deps --workspaces=false; fi
       - run: npm ls || true
       - name: Install this run's motely-wasm
         shell: bash
         run: |
           tarball=$(cd ../Motely.Wasm && npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP" | tail -n 1)
-          npm install --no-save --legacy-peer-deps "$RUNNER_TEMP/$tarball"
+          npm install --no-save --legacy-peer-deps --workspaces=false "$RUNNER_TEMP/$tarball"
           diff -r ../Motely.Wasm/bin/motely-wasm node_modules/motely-wasm/bin/motely-wasm
       - run: npm run build
       - name: Check Seed Pile and WebMCP against this run's engine

@@ -122,9 +122,9 @@ motely --jaml longColaDanker --seeds pile.csv --save                       # kee
 | `seed_search` | Search with `replay`, `seeds`, `keyword`, `random` or a bounded `sequential` window. Same mode names and result text as the WebMCP tool in `Motely.Web`. |
 | `soul_order` | Report a seed's **anteless** run-global legendary face sequence, plus a direct `Perkeo → Perkeo` answer. `maxAnte` defaults to 39 and `heldJokers` maps to `with: { jokers: [...] }`. |
 | `best_seed` | Replay a seed file/CSV/list against a filter, ignore its cutoff, and return the highest-scoring seed and a top-N table. |
-| `analyze_seed` | Blueprint-style seed overview. Pass `filter` to use the exact JAML's antes, shop slots and `with:`; otherwise use `maxAnte` and `shopLimit`. |
+| `analyze_seed` | Blueprint-style seed overview. Pass `filter` to use the exact JAML's antes, shop slots and `with:`; the first written block with content is the window. Otherwise use `maxAnte` and `shopLimit`. |
 
-Every tool returns short text plus structured JSON and sets `isError` with an actionable `Error: …` message on bad input. All five are read-only/idempotent.
+Every tool returns short text plus structured JSON and sets `isError` with an actionable `Error: …` message on bad input. All five are read-only/idempotent. File paths stay inside the current directory or the server's project folder; an absolute path outside those areas returns an `Error: …` instead of opening the file.
 
 Replaying a pile for the best seed is one call:
 

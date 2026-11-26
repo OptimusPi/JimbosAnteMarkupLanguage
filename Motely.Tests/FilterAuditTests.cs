@@ -45,4 +45,32 @@ public sealed class FilterAuditTests(ITestOutputHelper output)
 
         Assert.Empty(failures);
     }
+
+    [Fact]
+    public void WhimsyDicetrick_SavedSearchPartyFindsStillMatch()
+    {
+        var root = Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", ".."));
+        var config = JamlConfig.FromFile(Path.Join(root, "Filters", "WhimsyDicetrick.yaml"));
+        var saved = config.Seeds
+            .Select(MotelyGlobals.NormalizeSeed)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.NotEmpty(saved);
+
+        var found = new HashSet<string>(StringComparer.Ordinal);
+        var settings = MotelySearchBuilder.CreateSettings(config, int.MinValue)
+            .WithThreadCount(1)
+            .WithQuietMode(true)
+            .WithAutoScoreCutoff(false)
+            .WithScoredResultGate(null)
+            .WithSeedList([.. saved]);
+        settings = settings.SeedScoreDesc is not null
+            ? settings.WithScoredResultCallback(result => { found.Add(result.Seed); })
+            : settings.WithSeedMatchCallback(seed => { found.Add(seed); });
+
+        using var search = settings.Start();
+        search.AwaitCompletion();
+
+        Assert.Equal(saved.Count, search.MatchingSeeds);
+        Assert.Equal(saved, found);
+    }
 }

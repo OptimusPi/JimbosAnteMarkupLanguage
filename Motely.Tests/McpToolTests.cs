@@ -1,5 +1,7 @@
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
+using Motely.Analysis;
+using Motely.Filters;
 using Motely.Mcp;
 
 namespace Motely.Tests;
@@ -54,6 +56,38 @@ public sealed class McpToolTests
     }
 
     [Fact]
+    public void BestSeed_RefusesAPathOutsideTheAllowedAreas()
+    {
+        string outsideDir = Path.GetFullPath(
+            Path.Combine(RepoRoot, "..", $"motely-outside-{Guid.NewGuid():N}")
+        );
+        Directory.CreateDirectory(outsideDir);
+        try
+        {
+            string path = Path.Combine(outsideDir, "seeds.txt");
+            File.WriteAllText(path, "ALEEB");
+            const string jaml = """
+                name: path-boundary
+                deck: Red
+                stake: White
+                should:
+                  - boss: Any
+                    antes: [1]
+                    score: 1
+                """;
+
+            var result = MotelyTools.BestSeed(jaml, path, top: 1);
+
+            Assert.True(result.IsError);
+            Assert.Contains("outside the allowed search areas", Text(result));
+        }
+        finally
+        {
+            Directory.Delete(outsideDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void SoulOrder_ReportsTheAntelessFaceSequence()
     {
         var result = MotelyTools.SoulOrder("JNN5KG71", "Ghost", "White", maxAnte: 39);
@@ -105,4 +139,48 @@ public sealed class McpToolTests
         Assert.True(json.GetProperty("antelessSoulOrder").GetArrayLength() >= 1);
         Assert.True(json.GetProperty("antes").GetArrayLength() >= 1);
     }
+
+    [Fact]
+    public void AnalyzeSeed_ShowsTheShopTheFiltersWithBlockReads()
+    {
+        const string jaml = """
+            deck: Red
+            seeds: [PIFREAKS]
+            must:
+              - tarotCard: any
+                antes: [1]
+                with: { vouchers: [TarotMerchant, TarotTycoon] }
+            """;
+
+        var result = MotelyTools.AnalyzeSeed("PIFREAKS", filter: jaml, shopLimit: 12);
+        Assert.False(result.IsError);
+        var reported = Shop(Structured(result), 1);
+
+        var config = JamlConfig.FromJaml(jaml);
+        var with = JamlConfigWith.Find(config);
+        Assert.NotNull(with);
+        var expected = Shop(
+            Assert.Single(MotelyJamlyzer.Analyze(config, eventRolls: 0, shopSlots: 12, with: with)),
+            1
+        );
+        var plain = Shop(
+            Assert.Single(MotelyJamlyzer.Analyze(config, eventRolls: 0, shopSlots: 12)),
+            1
+        );
+
+        Assert.Equal(expected, reported);
+        Assert.NotEqual(plain, reported);
+    }
+
+    private static string[] Shop(JsonElement json, int ante) =>
+        json.GetProperty("antes").EnumerateArray()
+            .Single(entry => entry.GetProperty("ante").GetInt32() == ante)
+            .GetProperty("shop").EnumerateArray()
+            .Select(item => item.GetString()!)
+            .ToArray();
+
+    private static string[] Shop(MotelyJamlyzerSeedResult result, int ante) =>
+        result.Antes.Single(entry => entry.Ante == ante).ShopItems
+            .Select(item => item.ToString())
+            .ToArray();
 }

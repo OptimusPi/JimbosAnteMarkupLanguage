@@ -16,7 +16,8 @@ server, brings the generated filter types closer to the loader, and ships a new 
   search party is meant for a wide sweep at whatever seeds per second you like.
 
 - **Bare legendary names in `soulOrder:` are now in the generated schema and TypeScript types.**
-  The loader already accepted them; editors and type-checkers did not. Both spellings now load:
+  The loader already accepted them; editors and type-checkers did not. Both spellings now load, and
+  generated lists are non-empty tuples, so an empty `soulOrder:` is refused everywhere:
 
   ```yaml
   must:
@@ -33,10 +34,33 @@ server, brings the generated filter types closer to the loader, and ships a new 
 - **CLI search-mode parsing has wider coverage.** `replay`, `seeds`, `keyword`, `random` and bounded
   `sequential` windows share one parser path, with tests for the awkward corners.
 
+- **Saved finds reach Parquet once, when the sweep finishes.** Search batches append rows to DuckDB;
+  a file database checkpoints every 250,000 rows. Wide sweeps no longer rewrite every saved find on
+  each batch.
+
+- **MCP file paths stay in the search party's areas.** Relative paths resolve from the current
+  directory or the `Motely.Mcp` project folder. An absolute path outside those areas returns an
+  actionable `Error:` instead of opening the file.
+
+- **`analyze_seed` shows what the filter reads.** Passing a JAML filter now uses its first written
+  `with:` block, and the CLI's `--jamlyze` rider uses the same block. A shop shaped by vouchers or
+  held jokers looks the same in the analyzer and in the search.
+
+- **`best_seed` stays small on a big pile.** Only the top-N rows and their tallies are kept, instead
+  of a detail for every match. The answer and tie order are unchanged.
+
+- **Seed sources keep their odd corners.** An empty string in a DuckDB seed file is a seed, not the
+  end of the stream, and a signed Parquet URL is recognized from its path before `?` or `#`.
+
+- **Per-seed tally buffers grow only when tallies arrive.** Seed-and-score-only finds no longer pay
+  for 256 unused integers each.
+
 ## Changed
 
-- **The engine version and the npm version match again.** `MotelyVersion` and
-  `Motely.Wasm/package.json` are both `32.2.0`, so the release gate accepts `v32.2.0`.
+- **The engine version and the npm versions match again.** `MotelyVersion`,
+  `Motely.Wasm/package.json`, `Motely.Wasm/package-lock.json` and `Motely.Web/package.json` are all
+  `32.2.0`, so the release gate accepts `v32.2.0`. CI installs the web app with
+  `--workspaces=false --legacy-peer-deps`, and the release gate checks the package lockfile too.
 
 - **`best_seed` ignores the filter's cutoff** and uses a single thread, so a large seed pile is
   ranked by true score instead of by whatever cutoff the filter happened to carry.

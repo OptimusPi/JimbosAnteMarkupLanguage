@@ -9,11 +9,14 @@ namespace Motely.CLI;
 
 /// <summary>
 /// DuckDB-backed result sink: streams (seed, score, tally1..tallyN[, window]) via DuckDBAppender
-/// with zero C# heap accumulation. Supports a persistent .duckdb file (CHECKPOINT on Flush) or
-/// direct ZSTD .parquet export (backed by DuckDB with disk spill if huge).
+/// with zero C# heap accumulation. Supports a persistent .duckdb file (periodic CHECKPOINT) or
+/// direct ZSTD .parquet export. Batch boundaries append rows; the finished search exports once,
+/// so a wide sweep does not rewrite every saved find again and again.
 /// </summary>
 public sealed class DuckDbResultSink : IMotelyResultSink
 {
+    private const long CheckpointRowInterval = 250_000;
+
     private readonly Lock _gate = new();
     private readonly DuckDBConnection _connection;
     private readonly int _tallyCount;
@@ -22,6 +25,7 @@ public sealed class DuckDbResultSink : IMotelyResultSink
     private readonly bool _isFileDb;
     private DuckDBAppender? _appender;
     private long _bufferedRows;
+    private long _rowsSinceCheckpoint;
     private bool _disposed;
 
     public string OutputPath { get; }
@@ -124,8 +128,27 @@ public sealed class DuckDbResultSink : IMotelyResultSink
         row.EndRow();
 
         _bufferedRows++;
+        _rowsSinceCheckpoint++;
         if (_bufferedRows >= 4096)
             FlushAppenderLocked();
+    }
+
+    /// <summary>
+    /// Called at search batch boundaries. Rows reach DuckDB, but a Parquet file is written only
+    /// when the search is finished. A file database checkpoints on a coarse row interval so its
+    /// write-ahead log stays bounded without pausing every batch.
+    /// </summary>
+    public void FlushBatch()
+    {
+        lock (_gate)
+        {
+            if (_disposed)
+                return;
+
+            FlushAppenderLocked();
+            if (_isFileDb && _rowsSinceCheckpoint >= CheckpointRowInterval)
+                CheckpointLocked();
+        }
     }
 
     public void Flush()
@@ -139,15 +162,22 @@ public sealed class DuckDbResultSink : IMotelyResultSink
 
             if (_isFileDb)
             {
-                using var cp = _connection.CreateCommand();
-                cp.CommandText = "CHECKPOINT";
-                cp.ExecuteNonQuery();
+                CheckpointLocked();
             }
             else if (_parquetPath is not null)
             {
                 ExportParquetLocked(_parquetPath);
             }
+            _rowsSinceCheckpoint = 0;
         }
+    }
+
+    private void CheckpointLocked()
+    {
+        using var cp = _connection.CreateCommand();
+        cp.CommandText = "CHECKPOINT";
+        cp.ExecuteNonQuery();
+        _rowsSinceCheckpoint = 0;
     }
 
     public void ExportParquet(string parquetPath)
@@ -286,9 +316,7 @@ public sealed class DuckDbResultSink : IMotelyResultSink
                 FlushAppenderLocked();
                 if (_isFileDb)
                 {
-                    using var cp = _connection.CreateCommand();
-                    cp.CommandText = "CHECKPOINT";
-                    cp.ExecuteNonQuery();
+                    CheckpointLocked();
                 }
                 else if (_parquetPath is not null)
                 {

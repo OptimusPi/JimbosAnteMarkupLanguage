@@ -23,8 +23,16 @@ internal static class BestSeedToolService
 
         try
         {
-            var collector = new MotelyTopSeedSink.Collector(top);
-            var details = new Dictionary<string, (int Score, int[] Tallies)>(StringComparer.Ordinal);
+            // Keep the rank and its tallies in one bounded heap. A dictionary of every match used
+            // to grow with the pile even though top caps the answer at 100 rows.
+            var rankedHeap = new PriorityQueue<RankedSeed, (int Score, long Sequence)>(
+                Comparer<(int Score, long Sequence)>.Create(static (a, b) =>
+                {
+                    int byScore = a.Score.CompareTo(b.Score);
+                    return byScore != 0 ? byScore : b.Sequence.CompareTo(a.Sequence);
+                })
+            );
+            long sequence = 0;
             object gate = new();
 
             // int.MinValue disables the filter's fixed floor: a seed scoring 40 still has a winning
@@ -39,8 +47,15 @@ internal static class BestSeedToolService
             void Consider(string seed, int score, int[] tallies)
             {
                 lock (gate)
-                    details.TryAdd(seed, (score, tallies));
-                collector.Consider(seed, score);
+                {
+                    rankedHeap.Enqueue(
+                        new RankedSeed(seed, score, tallies, sequence),
+                        (score, sequence)
+                    );
+                    sequence++;
+                    if (rankedHeap.Count > top)
+                        rankedHeap.Dequeue();
+                }
             }
 
             settings = settings.SeedScoreDesc is not null
@@ -51,11 +66,12 @@ internal static class BestSeedToolService
             using var search = settings.Start();
             search.AwaitCompletion();
 
-            string[] winners = collector.GetSeeds().ToArray();
-            var ranked = winners
-                .Select(seed => details.TryGetValue(seed, out var detail)
-                    ? new { seed, detail.Score, detail.Tallies }
-                    : new { seed, Score = 0, Tallies = Array.Empty<int>() })
+            var ranked = rankedHeap
+                .UnorderedItems
+                .Select(entry => entry.Element)
+                .OrderByDescending(entry => entry.Score)
+                .ThenBy(entry => entry.Sequence)
+                .Select(entry => new { seed = entry.Seed, entry.Score, entry.Tallies })
                 .ToArray();
 
             string header =
@@ -87,4 +103,6 @@ internal static class BestSeedToolService
             return ToolResults.Error($"Error: the best-seed check failed: {ex.GetBaseException().Message}");
         }
     }
+
+    private sealed record RankedSeed(string Seed, int Score, int[] Tallies, long Sequence);
 }

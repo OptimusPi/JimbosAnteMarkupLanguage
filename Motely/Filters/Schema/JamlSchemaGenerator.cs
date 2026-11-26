@@ -206,6 +206,7 @@ public static class JamlSchemaGenerator
         const string text = "string | number | boolean";
         var named = member.Enum is { } enumType ? EnumTypeName(enumType) : "";
         string[] any = member.Any ? [Quote(AnyLiteral)] : [];
+        string SoulEntryType() => $"({named} | {TypeNameOf(model, member.Block!)})";
         string[] options = member.Kind switch
         {
             JamlValueKind.Text => [text],
@@ -220,8 +221,9 @@ public static class JamlSchemaGenerator
             JamlValueKind.Clauses => [member.MinItems > 0 ? "[JamlClause, ...JamlClause[]]" : "JamlClause[]"],
             JamlValueKind.Block => [TypeNameOf(model, member.Block!)],
             JamlValueKind.Blocks => [$"{TypeNameOf(model, member.Block!)}[]"],
-            JamlValueKind.SoulOrderEntries =>
-                [$"({named} | {TypeNameOf(model, member.Block!)})[]"],
+            JamlValueKind.SoulOrderEntries => member.MinItems > 0
+                ? [$"[{SoulEntryType()}, ...{SoulEntryType()}[]]"]
+                : [$"{SoulEntryType()}[]"],
             _ => throw new NotSupportedException($"no TypeScript form for a {member.Kind} member."),
         };
         return string.Join(" | ", member.Null ? [.. options, "null"] : options);

@@ -57,7 +57,7 @@ internal static class MotelyToolDescriptions
         "packs, and the anteless Soul order. WHEN: you want to understand one seed, check where a " +
         "Soul card or edition sits, or debug why a filter matched. DO-NOT-USE-FOR: finding seeds " +
         "across a space — use seed_search. Pass `filter` to use the EXACT JAML you are searching " +
-        "with: its antes, `with:` block and shop slots drive the window. Without `filter`, " +
+        "with: its antes, first written `with:` block and shop slots drive the window. Without `filter`, " +
         "`maxAnte` and `shopLimit` set a simple window. Example: " +
         "{ seed: GSNQDOAA, filter: \"name: ColaLit\\n…\" } → a compact JSON overview plus text. " +
         "Cost: one Jamlyzer walk; larger maxAnte/shopLimit mean more text.";
