@@ -2,33 +2,126 @@ name: WhimsyDicetrick
 author: for pi — Perkeo + Showman + NegativeTag + Oops search party
 description: >
   A community search party on Anaglyph for Oops! All 6s. Perkeo and Showman
-  early, at least two Negative skip tags, and Oops in the shop. The only score
-  is 100 per Oops. A saved seed list is included for convenience; the search
-  party is meant for a wide sweep at whatever seeds per second you like.
+  early, with at least two antes where a Negative Small Blind tag and Oops in
+  the shop occur together. The only score is 100 per Oops. A saved seed list is
+  included for convenience; the search party is meant for a wide sweep at
+  whatever seeds per second you like.
 deck: Anaglyph
 stake: White
 
 must:
   - legendaryJoker: Perkeo
     antes: [1, 2, 3, 4]
-  - smallBlindTag: NegativeTag
-    antes: [2, 3, 4, 5, 6, 7, 8]
+  - or:
+      - and:
+          - smallBlindTag: NegativeTag
+            ante: 2
+          - joker: OopsAll6s
+            ante: 2
+            sources:
+              shopItems: [2, 3, 4, 5, 6, 7, 8]
+      - and:
+          - smallBlindTag: NegativeTag
+            ante: 3
+          - joker: OopsAll6s
+            ante: 3
+            sources:
+              shopItems: [2, 3, 4, 5, 6, 7, 8]
+      - and:
+          - smallBlindTag: NegativeTag
+            ante: 4
+          - joker: OopsAll6s
+            ante: 4
+            sources:
+              shopItems: [2, 3, 4, 5, 6, 7, 8]
+      - and:
+          - smallBlindTag: NegativeTag
+            ante: 5
+          - joker: OopsAll6s
+            ante: 5
+            sources:
+              shopItems: [2, 3, 4, 5, 6, 7, 8]
+      - and:
+          - smallBlindTag: NegativeTag
+            ante: 6
+          - joker: OopsAll6s
+            ante: 6
+            sources:
+              shopItems: [2, 3, 4, 5, 6, 7, 8]
+      - and:
+          - smallBlindTag: NegativeTag
+            ante: 7
+          - joker: OopsAll6s
+            ante: 7
+            sources:
+              shopItems: [2, 3, 4, 5, 6, 7, 8]
+      - and:
+          - smallBlindTag: NegativeTag
+            ante: 8
+          - joker: OopsAll6s
+            ante: 8
+            sources:
+              shopItems: [2, 3, 4, 5, 6, 7, 8]
     min: 2
-  - joker: OopsAll6s
-    antes: [2, 3, 4, 5, 6, 7, 8]
-    sources:
-      shopItems: [2, 3, 4, 5, 6, 7, 8]
   - joker: Showman
     antes: [1, 2, 3, 4]
+    sources:
+      shopItems: [0,1, 2, 3, 4]
 should:
-  # Every Oops! All 6s scores 100, wherever it turns up.
-  - joker: OopsAll6s
-    antes: [1, 2, 3, 4, 5, 6, 7, 8]
+  # Every Oops! All 6s scores 10, wherever it turns up**
+  - uncommonJoker: OopsAll6s
+    antes: [5, 6, 7, 8]
+    sources:
+      shopItems: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+      boosterPacks: [0, 1, 2, 3, 4, 5]
+    score: 10
+    label: OopsAll6s
+
+  # Every Negative Oops! All 6s scores 100, wherever it turns up**
+  - uncommonJoker: OopsAll6s
+    edition: Negative
+    antes: [5, 6, 7, 8]
     sources:
       shopItems: [0, 1, 2, 3, 4, 5, 6, 7, 8]
       boosterPacks: [0, 1, 2, 3, 4, 5]
     score: 100
-    label: oops_each
+    label: NegativeOops
+
+  # **Except when it appears in the shop before the showman**
+  - uncommonJoker: OopsAll6s
+    antes: [1, 2, 3]
+    sources:
+      shopItems: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+      boosterPacks: [0, 1, 2, 3, 4, 5]
+    score: 10
+    label: OopsAll6s
+    max: 1 # Only give score to 1.
+  - spectralCard: Ankh
+    antes: [1, 2, 3, 4]
+    label: "Early Ankh"
+    score: 10
+    max: 1 # Only give score to 1.
+
+  # Here goes the 100 point Negative Oops! All 6s Trick!
+  - and:
+      - smallBlindTag: NegativeTag
+        ante: 2
+      - joker: OopsAll6s
+        ante: 2
+        sources:
+          shopItems: [2, 3, 4, 5]
+        score: 100
+        label: OopsAll6s
+
+  - and:
+    - tag: NegativeTag # You can double skip and save the negative 100% to trigger in the NEXT ante OR collect spill over
+      ante: 2
+    - joker: OopsAll6s
+      ante: 3
+      sources:
+        shopItems: [0, 1, 2, 3]
+      score: 100
+      label: OopsAll6s
 
 seeds:
   - 743JAJ21
