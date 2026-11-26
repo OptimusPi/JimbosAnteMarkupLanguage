@@ -91,6 +91,7 @@ Exit codes: `0` finished, `1` bad input or a `--save` that could not write, `130
 | `--seeds A1B2C3D4,E5F6G7H8` | Exactly these seeds |
 | `--seeds file.csv` | Every seed in a file: one per line, first column. Plain lists, motely CSVs, spreadsheet exports, `.parquet`/`.pq`, `.duckdb`/`.db`/`.sqlite`, and remote `https://` or `s3://` Parquet URLs (streamed via DuckDB) all work. Up to 65,536 text seeds print in file order; longer lists split across threads |
 | `--seeds -` | Seeds read from stdin |
+| `--seeds all` | Every seed saved in the folder of `--jaml`, each once: filters' `seeds:` blocks, `.csv` and `.txt` files |
 | `--replay` | The filter file's own `seeds:` block |
 | `--keyword WORD` / `--keywords A,B` | Seeds that contain the word(s). `--padding` names the characters that fill the other slots (default: all of 1-9 and A-Z) |
 | `--random N` | N random seeds |

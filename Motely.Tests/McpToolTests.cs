@@ -172,6 +172,64 @@ public sealed class McpToolTests
         Assert.NotEqual(plain, reported);
     }
 
+    [Fact]
+    public void SeedValidate_FindsABareJamlName()
+    {
+        // A bare name must try every filter extension, not only .yaml.
+        var result = MotelyTools.SeedValidate("Whimsy_Dicetricks314");
+
+        Assert.False(result.IsError);
+        Assert.Contains("Whimsy Dicetricks", Text(result));
+    }
+
+    [Fact]
+    public void SeedValidate_SaysWhenANameHasNoFile()
+    {
+        var result = MotelyTools.SeedValidate("no_such_filter_xyz");
+
+        Assert.True(result.IsError);
+        Assert.Contains("no filter file found", Text(result));
+        Assert.Contains("paste the JAML text", Text(result));
+    }
+
+    [Fact]
+    public void SeedSearch_ReplayWithoutASeedsBlockExplainsWhatToDo()
+    {
+        const string jaml = """
+            name: no-seeds
+            deck: Red
+            stake: White
+            must:
+              - joker: Blueprint
+                antes: [1]
+            """;
+
+        var result = MotelyTools.SeedSearch(jaml, mode: "replay");
+
+        Assert.True(result.IsError);
+        Assert.Contains("has no `seeds:` block to replay", Text(result));
+        Assert.Contains("mode \"seeds\"", Text(result));
+    }
+
+    [Fact]
+    public void BestSeed_SaysWhenTheFilterScoresNothing()
+    {
+        const string jaml = """
+            name: no-should
+            deck: Red
+            stake: White
+            must:
+              - joker: Blueprint
+                antes: [1]
+            """;
+
+        var result = MotelyTools.BestSeed(jaml, "C3DW94B8,3MLDLU2W", top: 2);
+
+        Assert.False(result.IsError);
+        Assert.Contains("has no `should:` clauses", Text(result));
+        Assert.False(Structured(result).GetProperty("scored").GetBoolean());
+    }
+
     private static string[] Shop(JsonElement json, int ante) =>
         json.GetProperty("antes").EnumerateArray()
             .Single(entry => entry.GetProperty("ante").GetInt32() == ante)

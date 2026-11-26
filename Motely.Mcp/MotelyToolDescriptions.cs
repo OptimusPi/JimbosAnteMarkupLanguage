@@ -22,13 +22,13 @@ internal static class MotelyToolDescriptions
         "seeds that satisfy it. DO-NOT-USE-FOR: merely checking that a filter loads — use " +
         "seed_validate; it is cheaper. Modes: replay (default; the filter's own `seeds:` block), " +
         "seeds (comma-separated list in `seeds`), keyword (seeds containing `keyword`), random " +
-        "(`randomCount` random seeds), sequential (sweep from the start of the ~2.3-trillion-seed " +
-        "space — prefer random or keyword probes unless you mean an exhaustive sweep). Exactly one " +
-        "selector must match `mode`. Example: { filter: \"…\", mode: \"seeds\", " +
+        "(`randomCount` random seeds), sequential (a bounded sweep from the start of the " +
+        "~2.3-trillion-seed space — about 3 million seeds; prefer random or keyword probes for a " +
+        "quick look). Exactly one selector must match `mode`. Example: { filter: \"…\", mode: \"seeds\", " +
         "seeds: \"GSNQDOAA,F6Z71ZAA\", collect: 10 } → \"F: 1 matched / 2 searched in 2ms " +
         "(1,000 seeds/s).\\nMatches: GSNQDOAA\". collect caps kept matches (default 100, max " +
-        "10000). Cost: native SIMD speed; a loose filter or an unbounded sequential sweep can run " +
-        "effectively forever — keep collect modest.";
+        "10000). Cost: native SIMD speed; sequential is bounded to ~3 million seeds, and collect " +
+        "stops any mode early — keep collect modest.";
 
     public const string SoulOrder =
         "Check a seed's Soul order: the run-global sequence of legendary faces the `Joker4` stream " +
@@ -57,8 +57,8 @@ internal static class MotelyToolDescriptions
         "packs, and the anteless Soul order. WHEN: you want to understand one seed, check where a " +
         "Soul card or edition sits, or debug why a filter matched. DO-NOT-USE-FOR: finding seeds " +
         "across a space — use seed_search. Pass `filter` to use the EXACT JAML you are searching " +
-        "with: its antes, first written `with:` block and shop slots drive the window. Without `filter`, " +
-        "`maxAnte` and `shopLimit` set a simple window. Example: " +
+        "with: its antes and first written `with:` block drive the window; `shopLimit` still caps " +
+        "the shop depth. Without `filter`, `maxAnte` and `shopLimit` set a simple window. Example: " +
         "{ seed: GSNQDOAA, filter: \"name: ColaLit\\n…\" } → a compact JSON overview plus text. " +
         "Cost: one Jamlyzer walk; larger maxAnte/shopLimit mean more text.";
 }

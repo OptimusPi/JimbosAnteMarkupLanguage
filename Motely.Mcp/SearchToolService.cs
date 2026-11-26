@@ -76,6 +76,12 @@ internal static class SearchToolService
             return ToolResults.Error($"Error: {hint}");
         }
 
+        if (modeText == "replay" && (loaded!.Config.Seeds is null || loaded.Config.Seeds.Count == 0))
+            return ToolResults.Error(
+                $"Error: {loaded.Label} has no `seeds:` block to replay. "
+                + "Use mode \"seeds\" with a seed list, \"keyword\", \"random\", or \"sequential\"."
+            );
+
         if (randomCount is < 1)
             return ToolResults.Error("Error: randomCount must be an integer ≥ 1 — how many random seeds to try.");
         if (collect < 1 || collect > MaxCollect)

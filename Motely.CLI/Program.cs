@@ -45,7 +45,7 @@ Option<MotelyStake?> stakeOption = new("--stake")
 Option<int?> threadsOption = new("--threads", "-t") { Description = "Worker threads (default: every core)." };
 Option<string> seedsOption = new("--seeds")
 {
-    Description = "Search exactly these seeds: comma-separated, a seed file (first column; a motely CSV works), or - for stdin.",
+    Description = "Search exactly these seeds: comma-separated, a seed file (first column; a motely CSV works), - for stdin, or all (every seed saved in the --jaml folder).",
 };
 Option<bool> replayOption = new("--replay") { Description = "Search the filter file's own seeds: block." };
 Option<string[]> keywordOption = new("--keyword", "--keywords")

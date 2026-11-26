@@ -58,6 +58,10 @@ internal static class BestSeedToolService
                 }
             }
 
+            // A filter without `should:` clauses scores every seed 0. Say so, instead of presenting
+            // the first listed seed as a meaningful winner. (The engine still installs a score
+            // provider, so the flag comes from the filter, not from SeedScoreDesc.)
+            bool scored = loaded.Config.Should.Count > 0;
             settings = settings.SeedScoreDesc is not null
                 ? settings.WithScoredResultCallback(result =>
                     Consider(result.Seed, result.Score, result.Tallies.ToArray()))
@@ -77,6 +81,10 @@ internal static class BestSeedToolService
             string header =
                 $"best seed for {loaded.Label} from {McpFormat.Number(listed.Length)} listed seeds: " +
                 (ranked.Length > 0 ? $"{ranked[0].seed}, score {ranked[0].Score}." : "no matches.");
+            if (!scored)
+                header +=
+                    " This filter has no `should:` clauses, so every seed scores 0; "
+                    + "the first listed seed is the winner.";
             string text = ranked.Length == 0
                 ? header
                 : header + "\nTop:" + string.Join(
@@ -93,6 +101,7 @@ internal static class BestSeedToolService
                     listed = listed.Length,
                     searched = search.TotalSeedsSearched,
                     matched = search.MatchingSeeds,
+                    scored,
                     best = ranked.Length > 0 ? ranked[0] : null,
                     top = ranked,
                 }

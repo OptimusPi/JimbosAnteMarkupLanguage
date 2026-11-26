@@ -29,11 +29,13 @@ internal static class AnalyzeSeedToolService
             return ToolResults.Error("Error: shopLimit must be between 1 and 100.");
 
         JamlConfig? config;
+        string? filterLabel = null;
         if (!string.IsNullOrWhiteSpace(filter))
         {
             if (!FilterToolService.TryLoad(filter, out var loaded, out var error))
                 return ToolResults.Error(error!);
             config = loaded!.Config;
+            filterLabel = loaded.Label;
             config.Seeds.Clear();
             config.Seeds.Add(canonicalSeed!);
         }
@@ -107,7 +109,7 @@ internal static class AnalyzeSeedToolService
                     seed = result.Seed,
                     deck = config.Deck.ToString(),
                     stake = config.Stake.ToString(),
-                    filter = string.IsNullOrWhiteSpace(filter) ? null : FilterToolService.TryLoad(filter, out var f, out _) ? f!.Label : null,
+                    filter = filterLabel,
                     antelessSoulOrder = faces,
                     antes,
                 }

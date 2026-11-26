@@ -1,6 +1,6 @@
 {
   "name": "motely-web",
-  "version": "32.2.0",
+  "version": "32.3.0",
   "private": true,
   "description": "The Motely seed lab: Balatro seed pile, filter library, and SeedLab on motely-wasm.",
   "type": "module",

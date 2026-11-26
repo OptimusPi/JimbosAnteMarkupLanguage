@@ -207,6 +207,19 @@ public static class CliSearchMode
             }
             explicitSeeds = [.. input.JamlSeeds.Select(static s => MotelyGlobals.NormalizeSeed(s)).Distinct()];
         }
+        else if (
+            input.SeedsArgument?.Trim() == "all"
+            && input.AllowSeedFile
+            && !string.IsNullOrWhiteSpace(input.JamlPath)
+        )
+        {
+            explicitSeeds = SavedSeedsBeside(input.JamlPath);
+            if (explicitSeeds.Length == 0)
+            {
+                error = $"Error: --seeds all: no saved seeds in the folder of '{input.JamlPath}'.";
+                return false;
+            }
+        }
         else if (hasSeedsArg)
         {
             if (!ResolveSeedsCore(input.SeedsArgument!, input.AllowSeedFile, out explicitSeeds, out error))
@@ -359,6 +372,44 @@ public static class CliSearchMode
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// <c>--seeds all</c>: every saved seed in the filter's folder, each once: the seeds: block of
+    /// every filter, and the first column of every .csv and .txt. A filter that does not load, or
+    /// an entry that is not a seed, is skipped.
+    /// </summary>
+    private static string[] SavedSeedsBeside(string jamlPath)
+    {
+        var folder = Path.GetDirectoryName(Path.GetFullPath(jamlPath))!;
+        HashSet<string> seeds = new(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(folder).Order(StringComparer.Ordinal))
+        {
+            var extension = Path.GetExtension(file).ToLowerInvariant();
+            if (extension is ".csv" or ".txt")
+            {
+                foreach (var line in File.ReadLines(file))
+                {
+                    var cell = line.Split(',')[0].Trim().TrimStart('=').Trim('"', '\'', ' ');
+                    // A header row is not a seed.
+                    if (cell.Length > 0 && !cell.Equals("seed", StringComparison.OrdinalIgnoreCase)
+                        && TryNormalizeSeed(cell, out var seed))
+                        seeds.Add(seed);
+                }
+                continue;
+            }
+            if (extension is not (".yaml" or ".yml" or ".jaml"))
+                continue;
+            if (!JamlConfigLoader.TryLoad(File.ReadAllText(file), out var config, out var loadError))
+            {
+                Console.Error.WriteLine($"Warning: --seeds all: skipped {Path.GetFileName(file)}: {loadError}");
+                continue;
+            }
+            foreach (var raw in config.Seeds ?? [])
+                if (TryNormalizeSeed(raw, out var seed))
+                    seeds.Add(seed);
+        }
+        return [.. seeds];
     }
 
     /// <summary>
