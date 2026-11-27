@@ -37,11 +37,21 @@
          shows per call site (not one collapsed IL2104 per package) and fails the build under
          TreatWarningsAsErrors. -->
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <!-- DuckDB.NET is a desktop-only dependency and is not trim/AOT-clean (IL2046/IL2067/IL2070/
+         IL2075/IL2093/IL3050). The AOT gate publishes with -p:MotelyDuckDb=false, which leaves it
+         out; a JIT build (dotnet run) keeps Parquet/DuckDB/SQLite seeds and Parquet/DuckDB output. -->
+    <MotelyDuckDb Condition="'$(MotelyDuckDb)' == ''">true</MotelyDuckDb>
+    <DefineConstants Condition="'$(MotelyDuckDb)' == 'true'">$(DefineConstants);MOTELY_DUCKDB</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
-    <PackageReference Include="DuckDB.NET.Data.Full" />
+    <PackageReference Include="DuckDB.NET.Data.Full" Condition="'$(MotelyDuckDb)' == 'true'" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(MotelyDuckDb)' != 'true'">
+    <Compile Remove="DuckDbSeedProvider.cs" />
+    <Compile Remove="DuckDbResultSink.cs" />
   </ItemGroup>
 
   <ItemGroup>

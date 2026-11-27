@@ -17,28 +17,13 @@ public sealed class DuckDbSeedProvider : IMotelySeedProvider, IDisposable
 
     public long SeedCount { get; }
 
-    public static bool HandlesPath(string argument)
-    {
-        if (string.IsNullOrWhiteSpace(argument))
-            return false;
-        if (IsRemotePath(argument))
-            return true;
-        string ext = SourceExtension(argument);
-        return ext is ".parquet" or ".pq" or ".duckdb" or ".db" or ".sqlite" or ".sqlite3";
-    }
+    public static bool HandlesPath(string argument) => DuckDbPaths.IsSeedSource(argument);
 
     /// <summary>
     /// The extension DuckDB should read. A signed remote URL keeps its query string, so the
     /// extension comes from the URI path rather than from the whole address.
     /// </summary>
-    public static string SourceExtension(string path)
-    {
-        string withoutQuery = path;
-        int suffix = path.IndexOfAny(['?', '#']);
-        if (suffix >= 0)
-            withoutQuery = path[..suffix];
-        return Path.GetExtension(withoutQuery).ToLowerInvariant();
-    }
+    public static string SourceExtension(string path) => DuckDbPaths.SourceExtension(path);
 
     public DuckDbSeedProvider(string path, bool distinct = false)
     {
@@ -174,10 +159,7 @@ public sealed class DuckDbSeedProvider : IMotelySeedProvider, IDisposable
 
     private static string EscapeSql(string path) => path.Replace("'", "''", StringComparison.Ordinal);
 
-    private static bool IsRemotePath(string path) =>
-        path.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-        || path.StartsWith("s3://", StringComparison.OrdinalIgnoreCase);
+    private static bool IsRemotePath(string path) => DuckDbPaths.IsRemote(path);
 
     public void Dispose()
     {

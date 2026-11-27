@@ -276,7 +276,16 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
         keywords.AddRange(entry.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     }
 
-    bool useDuckSeeds = seedsArgument is not null && DuckDbSeedProvider.HandlesPath(seedsArgument);
+    bool useDuckSeeds = DuckDbPaths.IsSeedSource(seedsArgument);
+#if !MOTELY_DUCKDB
+    if (useDuckSeeds)
+    {
+        Console.Error.WriteLine(
+            "Error: this build has no DuckDB support. Parquet, DuckDB and SQLite seed sources need a JIT build (`dotnet run`), not the NativeAOT binary."
+        );
+        return 1;
+    }
+#endif
     if (
         !CliSearchMode.TryApplySearchMode(
             plan.Settings.WithDeck(deck).WithStake(stake).WithThreadCount(threads),
@@ -306,6 +315,7 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
         return 1;
     }
 
+#if MOTELY_DUCKDB
     DuckDbSeedProvider? duckSeedProvider = null;
     if (useDuckSeeds)
     {
@@ -328,6 +338,7 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
             (int)Math.Min(duckSeedProvider.SeedCount, int.MaxValue)
         );
     }
+#endif
 
     string? outPath = parseResult.GetValue(outOption);
     bool jamlyze = parseResult.GetValue(jamlyzeOption);
@@ -340,6 +351,7 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
 
     bool quiet = parseResult.GetValue(quietOption);
     using var consoleSink = new ConsoleResultSink(plan.TallyLabels);
+#if MOTELY_DUCKDB
     DuckDbResultSink? duckSink = null;
     if (!string.IsNullOrWhiteSpace(outPath))
     {
@@ -358,11 +370,26 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
     IMotelyResultSink sink = duckSink is not null
         ? new CompositeMotelyResultSink([consoleSink, duckSink])
         : consoleSink;
+#else
+    if (!string.IsNullOrWhiteSpace(outPath))
+    {
+        Console.Error.WriteLine(
+            "Error: this build has no DuckDB support, so --out (.duckdb/.parquet) is unavailable. Use a JIT build (`dotnet run`) for --out."
+        );
+        return 1;
+    }
+
+    IMotelyResultSink sink = consoleSink;
+#endif
 
     bool doSave = parseResult.GetValue(saveOption);
     int collectorCap = saveLimit == 0 ? int.MaxValue : saveLimit;
     // When DuckDB is already capturing every match, pull top-N straight from DuckDB instead of hoarding strings in RAM.
+#if MOTELY_DUCKDB
     var saved = doSave && duckSink is null ? new MotelyTopSeedSink.Collector(collectorCap) : null;
+#else
+    var saved = doSave ? new MotelyTopSeedSink.Collector(collectorCap) : null;
+#endif
 
     // A filter with no score provider (nothing for the scoring pass to evaluate and no floor above
     // zero) sends its finds only on the seed-match channel. With a provider they arrive on both,
@@ -370,6 +397,7 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
     // The engine applies a fixed floor or auto's rate limiter (clamps to its per-thread running
     // max only while finds flood in). Max is one record across every thread, so it gates here.
     settings = settings.WithScoredResultGate(cutoff.IsMax ? cutoff.ShouldEmit : null);
+#if MOTELY_DUCKDB
     if (duckSink is not null)
         settings = settings.WithBatchBoundaryCallback(duckSink.FlushBatch);
     if (duckSink is not null && jamlyze)
@@ -383,6 +411,7 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
             )
         );
     }
+#endif
 
     settings = settings.SeedScoreDesc is not null
         ? settings
@@ -469,14 +498,20 @@ async Task<int> SearchAsync(ParseResult parseResult, string filterPath, Cancella
     }
     telemetry.Finish(search, interrupted ? "interrupted" : search.StoppedOnMatchLimit ? "stopped" : "finished");
 
+#if MOTELY_DUCKDB
     duckSink?.Flush();
+#endif
 
     bool saveFailed = false;
     if (doSave)
     {
+#if MOTELY_DUCKDB
         IReadOnlyList<string> seeds = duckSink is not null
             ? duckSink.GetTopSeeds(collectorCap)
             : saved!.GetSeeds();
+#else
+        IReadOnlyList<string> seeds = saved!.GetSeeds();
+#endif
         string? saveError;
         try
         {

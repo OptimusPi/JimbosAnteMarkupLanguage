@@ -2,7 +2,8 @@
 # A caller can pass `ref` to check out a commit other than the event's; on a manual run
 # release.yml passes the commit the tag is on, or will be created on.
 # `test` builds Motely.slnx (Motely.Wasm included) and runs the whole xunit suite in Release.
-# `aot` NativeAOT-publishes Motely.CLI (the trim/AOT gate) and runs one filter on two seeds.
+# `aot` NativeAOT-publishes Motely.CLI without DuckDB (desktop-only, not trim/AOT-clean) and runs
+# one filter on two seeds.
 # `wasm` publishes Motely.Wasm with NativeAOT-LLVM and wasm-opt, runs its node:test suite, packs
 # the npm tarball and loads that tarball by name under Node.
 # `web` builds Motely.Web against that package.
@@ -60,7 +61,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - run: dotnet publish Motely.CLI -c Release -r linux-x64 -o out/motely
+      - run: dotnet publish Motely.CLI -c Release -r linux-x64 -o out/motely -p:MotelyDuckDb=false
       - run: out/motely/Motely.CLI --jaml legendary-perkeo --seeds ALEEB,PIROCKS --quiet
       - uses: actions/upload-artifact@v5
         with:
